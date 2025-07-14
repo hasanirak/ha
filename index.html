@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الزائرين</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            background: linear-gradient(135deg, #f3f4f6 0%, #dbeafe 100%);
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: #e5e7eb;
+        }
+        .dark-mode .sidebar {
+            background-color: #111827;
+        }
+        .dark-mode .card, .dark-mode .table {
+            background-color: #1f2937;
+            color: #e5e7eb;
+        }
+        .dark-mode .stats-card {
+            background-color: #374151;
+        }
+        .dark-mode .table-dark {
+            background-color: #111827;
+        }
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 250px;
+            background-color: #1e40af;
+            padding-top: 20px;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-hidden {
+            transform: translateX(250px);
+        }
+        .sidebar .nav-link {
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 5px 10px;
+            transition: background-color 0.3s ease;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #60a5fa;
+        }
+        .content {
+            margin-right: 250px;
+            padding: 20px;
+            transition: margin-right 0.3s ease;
+        }
+        .content-full {
+            margin-right: 0;
+        }
+        .toggle-sidebar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .table {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        .table-dark {
+            background-color: #1e40af;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+            text-align: center;
+        }
+        .table th.sortable {
+            cursor: pointer;
+        }
+        .table th.sortable::after {
+            content: '\f0dc';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-right: 5px;
+            color: #fff;
+        }
+        .btn-whatsapp, .btn-update, .btn-details {
+            background-color: #34d399;
+            color: #fff;
+            border-radius: 8px;
+            padding: 6px 12px;
+            margin: 2px;
+        }
+        .btn-whatsapp:hover, .btn-update:hover, .btn-details:hover {
+            background-color: #10b981;
+        }
+        .btn-export, .btn-refresh, .btn-pdf {
+            background-color: #60a5fa;
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 15px;
+            margin-left: 10px;
+        }
+        .btn-export:hover, .btn-refresh:hover, .btn-pdf:hover {
+            background-color: #3b82f6;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stats-card {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container {
+            margin: 20px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #loading, #error {
+            font-size: 1.2rem;
+            text-align: center;
+            margin: 20px 0;
+        }
+        #loading i {
+            color: #1e40af;
+        }
+        .search-container, .filter-container {
+            margin-bottom: 20px;
+        }
+        .modal-content {
+            border-radius: 12px;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(250px);
+            }
+            .sidebar-active {
+                transform: translateX(0);
+            }
+            .content {
+                margin-right: 0;
+            }
+            .table {
+                font-size: 0.85rem;
+            }
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            .filter-container {
+                flex-direction: column;
+            }
+            .filter-container select, .filter-container input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <h2 class="text-center mb-4">تسجيل الدخول</h2>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="passcode" class="form-label">رمز المرور</label>
+                <input type="password" class="form-control" id="passcode" placeholder="أدخل رمز المرور (1234)" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">دخول</button>
+        </form>
+    </div>
+
+    <div class="d-none" id="mainContainer">
+        <!-- شريط جانبي -->
+        <nav class="sidebar sidebar-hidden" id="sidebar">
+            <h3 class="text-center text-white mb-4">إدارة الزائرين لمؤسسة بذرة عطاء</h3>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#list" data-bs-toggle="tab">قائمة الزائرين</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#form" data-bs-toggle="tab">إدخال بيانات</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#stats" data-bs-toggle="tab">إحصائيات</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#settings" data-bs-toggle="tab">الإعدادات</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="logout()">تسجيل الخروج</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- زر تبديل الشريط الجانبي -->
+        <button class="btn btn-primary toggle-sidebar" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- المحتوى الرئيسي -->
+        <div class="content content-full" id="content">
+            <div class="tab-content">
+                <!-- تبويب قائمة الزائرين -->
+                <div class="tab-pane fade show active" id="list">
+                    <h1 class="mb-4">قائمة الزائرين</h1>
+                    <div class="stats-container">
+                        <div class="stats-card">
+                            <h5>إجمالي الزائرين</h5>
+                            <p id="totalVisitors">0</p>
+                        </div>
+                        <div class="stats-card">
+                            <h5>منجز (موافق)</h5>
+                            <p id="approvedCount">0</p>
+                        </div>
+                        <div class="stats-card">
+                            <h5>غير منجز (معلق)</h5>
+                            <p id="pendingCount">0</p>
+                        </div>
+                        <div class="stats-card">
+                            <h5>قيد الإنجاز (مرفوض)</h5>
+                            <p id="rejectedCount">0</p>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="form-control" placeholder="ابحث بالاسم، العنوان، أو سبب الزيارة...">
+                    </div>
+                    <div class="filter-container d-flex flex-wrap justify-content-between">
+                        <select id="statusFilter" class="form-select w-25 me-2">
+                            <option value="">جميع الحالات</option>
+                            <option value="موافق">موافق</option>
+                            <option value="معلق">معلق</option>
+                            <option value="مرفوض">مرفوض</option>
+                        </select>
+                        <input type="date" id="dateFrom" class="form-control w-25 me-2">
+                        <input type="date" id="dateTo" class="form-control w-25 me-2">
+                        <div>
+                            <button class="btn btn-export" onclick="exportToExcel()">تصدير Excel</button>
+                            <button class="btn btn-pdf" onclick="exportToPDF()">تصدير PDF</button>
+                            <button class="btn btn-refresh" onclick="fetchData()">تحديث</button>
+                        </div>
+                    </div>
+                    <div id="loading" class="text-center">
+                        <i class="fas fa-spinner fa-spin"></i> جارٍ تحميل البيانات...
+                    </div>
+                    <div id="error" class="alert alert-danger d-none" role="alert"></div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="sortable" data-key="طابع_زمني">طابع زمني</th>
+                                    <th class="sortable" data-key="الاسم">الاسم</th>
+                                    <th class="sortable" data-key="العنوان">العنوان</th>
+                                    <th>رقم الهاتف</th>
+                                    <th class="sortable" data-key="سبب_زيارة">سبب زيارة</th>
+                                    <th>حالة الطلب</th>
+                                    <th>الملاحظات</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitorTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- تبويب إدخال البيانات -->
+                <div class="tab-pane fade" id="form">
+                    <h1 class="mb-4">إدخال بيانات الزائر</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSe4GPM9HbcVgOwIkqilH3x5b1R-egxz-JF5-leYeBVzIhVBbA/viewform?embedded=true" width="100%" height="959" frameborder="0" marginheight="0" marginwidth="0">جارٍ التحميل…</iframe>
+                        </div>
+                    </div>
+                </div>
+                <!-- تبويب الإحصائيات -->
+                <div class="tab-pane fade" id="stats">
+                    <h1 class="mb-4">إحصائيات الزائرين</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="stats-container">
+                                <div class="stats-card">
+                                    <h5>نسبة المنجز</h5>
+                                    <p id="approvedPercent">0%</p>
+                                </div>
+                                <div class="stats-card">
+                                    <h5>نسبة غير المنجز</h5>
+                                    <p id="pendingPercent">0%</p>
+                                </div>
+                                <div class="stats-card">
+                                    <h5>نسبة قيد الإنجاز</h5>
+                                    <p id="rejectedPercent">0%</p>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="dailyChart"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- تبويب الإعدادات -->
+                <div class="tab-pane fade" id="settings">
+                    <h1 class="mb-4">الإعدادات</h1>
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>تخصيص الواجهة</h5>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                                <label class="form-check-label" for="darkModeToggle">تفعيل الوضع المظلم</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal لإرسال رسالة واتساب -->
+    <div class="modal fade" id="whatsappModal" tabindex="-1" aria-labelledby="whatsappModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="whatsappModalLabel">إرسال رسالة واتساب</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="whatsappMessage" class="form-label">الرسالة</label>
+                        <textarea class="form-control" id="whatsappMessage" rows="4"></textarea>
+                    </div>
+                    <input type="hidden" id="whatsappPhone">
+                    <input type="hidden" id="whatsappName">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-whatsapp" id="sendWhatsapp">إرسال</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal لمعاينة التفاصيل -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailsModalLabel">تفاصيل الزائر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>الاسم:</strong> <span id="detailName"></span></p>
+                    <p><strong>العنوان:</strong> <span id="detailAddress"></span></p>
+                    <p><strong>رقم الهاتف:</strong> <span id="detailPhone"></span></p>
+                    <p><strong>سبب الزيارة:</strong> <span id="detailReason"></span></p>
+                    <p><strong>حالة الطلب:</strong> <span id="detailStatus"></span></p>
+                    <p><strong>الملاحظات:</strong> <span id="detailNotes"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal لإضافة ملاحظات -->
+    <div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notesModalLabel">إضافة ملاحظات</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="notesInput" class="form-label">الملاحظات</label>
+                        <textarea class="form-control" id="notesInput" rows="4"></textarea>
+                    </div>
+                    <input type="hidden" id="notesRowIndex">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-update" id="saveNotes">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // تسجيل الدخول
+        const loginForm = document.getElementById('loginForm');
+        const loginContainer = document.getElementById('loginContainer');
+        const mainContainer = document.getElementById('mainContainer');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const passcode = document.getElementById('passcode').value;
+            if (passcode === '1234') {
+                loginContainer.classList.add('d-none');
+                mainContainer.classList.remove('d-none');
+                fetchData();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم تسجيل الدخول',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'رمز المرور غير صحيح',
+                });
+            }
+        });
+
+        // تسجيل الخروج
+        window.logout = () => {
+            loginContainer.classList.remove('d-none');
+            mainContainer.classList.add('d-none');
+            document.getElementById('passcode').value = '';
+            document.getElementById('sidebar').classList.add('sidebar-hidden');
+            document.getElementById('content').classList.add('content-full');
+            Swal.fire({
+                icon: 'success',
+                title: 'تم تسجيل الخروج',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        };
+
+        // تبديل الشريط الجانبي
+        window.toggleSidebar = () => {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            sidebar.classList.toggle('sidebar-hidden');
+            sidebar.classList.toggle('sidebar-active');
+            content.classList.toggle('content-full');
+        };
+
+        const tableBody = document.getElementById('visitorTable');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const dateFrom = document.getElementById('dateFrom');
+        const dateTo = document.getElementById('dateTo');
+        const totalVisitors = document.getElementById('totalVisitors');
+        const approvedCount = document.getElementById('approvedCount');
+        const pendingCount = document.getElementById('pendingCount');
+        const rejectedCount = document.getElementById('rejectedCount');
+        const approvedPercent = document.getElementById('approvedPercent');
+        const pendingPercent = document.getElementById('pendingPercent');
+        const rejectedPercent = document.getElementById('rejectedPercent');
+        let visitorsData = [];
+        let sortKey = 'طابع_زمني';
+        let sortDirection = 1;
+        let statusChart = null;
+        let dailyChart = null;
+        let trendChart = null;
+
+        // جلب البيانات
+        window.fetchData = () => {
+            loading.classList.remove('d-none');
+            error.classList.add('d-none');
+            fetch('https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhh-b3f2ZczyaClShcWq45vbvJCmmQ4pVN4mjNQkbrohDH2K6BgClTAWLYpKKJKAnEfjqnWHFNVwtB7LV2ewfA1Uef9oSeDCDfyUnk2CLrtEgTC5JMPkqkwg61ejgS9frZf124TonikpSaMW-yvltYMngaQVWXOfdtS9gJSCInfm2EPQBKnYFCJW4HhjtjCbQ4uY3-h51NO5jlW95r78Ao2hReRD0pHzZYEKrJSzN1bdqApMvaJQkzIc6-yABZ9csvbaww-fgjMIo9LWioe06XL_NbHEA&lib=ML5bJp3GfFYISAc4Pke6lsGS1Rtfp0tvW')
+                .then(response => {
+                    if (!response.ok) throw new Error('فشل في جلب البيانات: ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    loading.classList.add('d-none');
+                    if (!Array.isArray(data) || data.length === 0) {
+                        error.textContent = 'لا توجد بيانات متاحة';
+                        error.classList.remove('d-none');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: 'لا توجد بيانات لعرضها',
+                        });
+                        return;
+                    }
+                    visitorsData = data;
+                    renderTable(data);
+                    updateStats(data);
+                    updateCharts(data);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم تحميل البيانات',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                })
+                .catch(err => {
+                    loading.classList.add('d-none');
+                    error.textContent = 'خطأ: ' + err.message;
+                    error.classList.remove('d-none');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'فشل في جلب البيانات: ' + err.message,
+                    });
+                    console.error('Error fetching data:', err);
+                });
+        };
+
+        // عرض البيانات في الجدول
+        const renderTable = (data) => {
+            tableBody.innerHTML = '';
+            const sortedData = [...data].sort((a, b) => {
+                const aValue = a[sortKey] || '';
+                const bValue = b[sortKey] || '';
+                if (sortKey === 'طابع_زمني') {
+                    return sortDirection * (new Date(aValue) - new Date(bValue));
+                }
+                return sortDirection * aValue.localeCompare(bValue);
+            });
+            sortedData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row['طابع_زمني'] || 'غير متوفر'}</td>
+                    <td>${row['الاسم'] || 'غير متوفر'}</td>
+                    <td>${row['العنوان'] || 'غير متوفر'}</td>
+                    <td>${row['رقم_الهاتف'] || 'غير متوفر'}</td>
+                    <td>${row['سبب_زيارة'] || 'غير متوفر'}</td>
+                    <td>
+                        <select class="form-select status-select" data-row-index="${row.rowIndex}">
+                            <option value="موافق" ${row['حالة_الطلب'] === 'موافق' ? 'selected' : ''}>موافق</option>
+                            <option value="معلق" ${row['حالة_الطلب'] === 'معلق' ? 'selected' : ''}>معلق</option>
+                            <option value="مرفوض" ${row['حالة_الطلب'] === 'مرفوض' ? 'selected' : ''}>مرفوض</option>
+                        </select>
+                    </td>
+                    <td>${row['الملاحظات'] || 'لا توجد ملاحظات'}</td>
+                    <td>
+                        <button class="btn btn-whatsapp" onclick="openWhatsappModal('${row['رقم_الهاتف'] || ''}', '${row['الاسم'] || 'الزائر'}')">
+                            <i class="fab fa-whatsapp me-1"></i>
+                        </button>
+                        <button class="btn btn-update" onclick="updateStatus(${row.rowIndex}, this.parentElement.previousElementSibling.previousElementSibling.querySelector('select').value, '${row['الملاحظات'] || ''}')">
+                            <i class="fas fa-save me-1"></i>
+                        </button>
+                        <button class="btn btn-details" onclick="openDetailsModal(${JSON.stringify(row).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-eye me-1"></i>
+                        </button>
+                        <button class="btn btn-update" onclick="openNotesModal(${row.rowIndex}, '${row['الملاحظات'] || ''}')">
+                            <i class="fas fa-sticky-note me-1"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const rowIndex = e.target.dataset.rowIndex;
+                    const status = e.target.value;
+                    updateStatus(rowIndex, status, visitorsData.find(row => row.rowIndex == rowIndex)['الملاحظات'] || '');
+                });
+            });
+        };
+
+        // تحديث حالة الطلب والملاحظات
+        window.updateStatus = (rowIndex, status, notes) => {
+            fetch('https://script.google.com/macros/s/AKfycbwg4wRQxSmHLn_LTLoADc2Lttu168iNpA12DyMzE4XORfNSDrP1-otd90ZJR_P1ztoW/exec', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rowIndex, status, notes })
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.result === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم التحديث',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                        fetchData();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: 'فشل تحديث البيانات: ' + result.error,
+                        });
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'خطأ: ' + err.message,
+                    });
+                });
+        };
+
+        // تحديث الإحصائيات
+        const updateStats = (data) => {
+            const total = data.length;
+            const approved = data.filter(row => row['حالة_الطلب'] === 'موافق').length;
+            const pending = data.filter(row => row['حالة_الطلب'] === 'معلق').length;
+            const rejected = data.filter(row => row['حالة_الطلب'] === 'مرفوض').length;
+            totalVisitors.textContent = total;
+            approvedCount.textContent = approved;
+            pendingCount.textContent = pending;
+            rejectedCount.textContent = rejected;
+            approvedPercent.textContent = total ? `${((approved / total) * 100).toFixed(1)}%` : '0%';
+            pendingPercent.textContent = total ? `${((pending / total) * 100).toFixed(1)}%` : '0%';
+            rejectedPercent.textContent = total ? `${((rejected / total) * 100).toFixed(1)}%` : '0%';
+        };
+
+        // تحديث المخططات
+        const updateCharts = (data) => {
+            // مخطط دائري
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            const stats = {
+                موافق: data.filter(row => row['حالة_الطلب'] === 'موافق').length,
+                معلق: data.filter(row => row['حالة_الطلب'] === 'معلق').length,
+                مرفوض: data.filter(row => row['حالة_الطلب'] === 'مرفوض').length
+            };
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(ctxStatus, {
+                type: 'pie',
+                data: {
+                    labels: ['منجز (موافق)', 'غير منجز (معلق)', 'قيد الإنجاز (مرفوض)'],
+                    datasets: [{
+                        data: [stats.موافق, stats.معلق, stats.مرفوض],
+                        backgroundColor: ['#34d399', '#facc15', '#f87171']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+
+            // مخطط شريطي
+            const dailyData = {};
+            data.forEach(row => {
+                const date = new Date(row['طابع_زمني']).toLocaleDateString('ar-SA');
+                dailyData[date] = (dailyData[date] || 0) + 1;
+            });
+            const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+            if (dailyChart) dailyChart.destroy();
+            dailyChart = new Chart(ctxDaily, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(dailyData),
+                    datasets: [{
+                        label: 'عدد الزيارات',
+                        data: Object.values(dailyData),
+                        backgroundColor: '#60a5fa'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // مخطط خطي
+            const trendData = {};
+            data.forEach(row => {
+                const date = new Date(row['طابع_زمني']).toLocaleDateString('ar-SA');
+                trendData[date] = (trendData[date] || 0) + 1;
+            });
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(trendData),
+                    datasets: [{
+                        label: 'اتجاه الزيارات',
+                        data: Object.values(trendData),
+                        borderColor: '#60a5fa',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        };
+
+        // فتح نافذة واتساب
+        window.openWhatsappModal = (phone, name) => {
+            if (!phone || phone === 'غير متوفر') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'رقم الهاتف غير متاح',
+                });
+                return;
+            }
+            document.getElementById('whatsappPhone').value = phone;
+            document.getElementById('whatsappName').value = name;
+            document.getElementById('whatsappMessage').value = `مرحبًا ${name}، شكرًا لزيارتك!`;
+            new bootstrap.Modal(document.getElementById('whatsappModal')).show();
+        };
+
+        // إرسال رسالة واتساب
+        document.getElementById('sendWhatsapp').addEventListener('click', () => {
+            const phone = document.getElementById('whatsappPhone').value;
+            const message = document.getElementById('whatsappMessage').value;
+            if (message.trim()) {
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                bootstrap.Modal.getInstance(document.getElementById('whatsappModal')).hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الإرسال',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'يرجى إدخال رسالة',
+                });
+            }
+        });
+
+        // فتح نافذة التفاصيل
+        window.openDetailsModal = (row) => {
+            document.getElementById('detailName').textContent = row['الاسم'] || 'غير متوفر';
+            document.getElementById('detailAddress').textContent = row['العنوان'] || 'غير متوفر';
+            document.getElementById('detailPhone').textContent = row['رقم_الهاتف'] || 'غير متوفر';
+            document.getElementById('detailReason').textContent = row['سبب_زيارة'] || 'غير متوفر';
+            document.getElementById('detailStatus').textContent = row['حالة_الطلب'] || 'غير متوفر';
+            document.getElementById('detailNotes').textContent = row['الملاحظات'] || 'لا توجد ملاحظات';
+            new bootstrap.Modal(document.getElementById('detailsModal')).show();
+        };
+
+        // فتح نافذة الملاحظات
+        window.openNotesModal = (rowIndex, notes) => {
+            document.getElementById('notesRowIndex').value = rowIndex;
+            document.getElementById('notesInput').value = notes;
+            new bootstrap.Modal(document.getElementById('notesModal')).show();
+        };
+
+        // حفظ الملاحظات
+        document.getElementById('saveNotes').addEventListener('click', () => {
+            const rowIndex = document.getElementById('notesRowIndex').value;
+            const notes = document.getElementById('notesInput').value;
+            const status = visitorsData.find(row => row.rowIndex == rowIndex)['حالة_الطلب'] || 'معلق';
+            updateStatus(rowIndex, status, notes);
+            bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
+        });
+
+        // البحث والتصفية
+        const filterTable = () => {
+            const searchText = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            const fromDate = dateFrom.value ? new Date(dateFrom.value) : null;
+            const toDate = dateTo.value ? new Date(dateTo.value) : null;
+            const filteredData = visitorsData.filter(row => {
+                const matchesSearch = (row['الاسم'] || '').toLowerCase().includes(searchText) || 
+                                     (row['العنوان'] || '').toLowerCase().includes(searchText) || 
+                                     (row['سبب_زيارة'] || '').toLowerCase().includes(searchText);
+                const matchesStatus = !status || (row['حالة_الطلب'] || '') === status;
+                const rowDate = new Date(row['طابع_زمني']);
+                const matchesDate = (!fromDate || rowDate >= fromDate) && (!toDate || rowDate <= toDate);
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+            renderTable(filteredData);
+            updateStats(filteredData);
+            updateCharts(filteredData);
+        };
+
+        // تصدير إلى Excel
+        window.exportToExcel = () => {
+            if (visitorsData.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'لا توجد بيانات للتصدير',
+                });
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(visitorsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Visitors');
+            XLSX.write(wb, 'Visitors.xlsx');
+            Swal.fire({
+                icon: 'success',
+                title: 'تم التصدير',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        };
+
+        // تصدير إلى PDF
+        window.exportToPDF = () => {
+            if (visitorsData.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'لا توجد بيانات للتصدير',
+                });
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont("Amiri", "normal");
+            doc.setFontSize(16);
+            doc.text('قائمة الزائرين', 105, 10, { align: 'center' });
+            doc.autoTable({
+                head: [['طابع زمني', 'الاسم', 'العنوان', 'رقم الهاتف', 'سبب زيارة', 'حالة الطلب', 'الملاحظات']],
+                body: visitorsData.map(row => [
+                    row['طابع_زمني'] || 'غير متوفر',
+                    row['الاسم'] || 'غير متوفر',
+                    row['العنوان'] || 'غير متوفر',
+                    row['رقم_الهاتف'] || 'غير متوفر',
+                    row['سبب_زيارة'] || 'غير متوفر',
+                    row['حالة_الطلب'] || 'غير متوفر',
+                    row['الملاحظات'] || 'لا توجد ملاحظات'
+                ]),
+                styles: { font: 'Amiri', halign: 'center' }
+            });
+            doc.save('Visitors.pdf');
+            Swal.fire({
+                icon: 'success',
+                title: 'تم التصدير إلى PDF',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        };
+
+        // فرز الجدول
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.key;
+                if (sortKey === key) {
+                    sortDirection *= -1;
+                } else {
+                    sortKey = key;
+                    sortDirection = 1;
+                }
+                renderTable(visitorsData);
+            });
+        });
+
+        // الوضع المظلم/الفاتح
+        document.getElementById('darkModeToggle').addEventListener('change', (e) => {
+            document.body.classList.toggle('dark-mode', e.target.checked);
+        });
+
+        searchInput.addEventListener('input', filterTable);
+        statusFilter.addEventListener('change', filterTable);
+        dateFrom.addEventListener('change', filterTable);
+        dateTo.addEventListener('change', filterTable);
+
+        // إعداد التبويبات
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
