@@ -2,553 +2,724 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#184e4e">
     <title>نظام إدارة الزائرين</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/ar-sa.js"></script>
     <style>
+        :root {
+            --primary-color: #184e4e;
+            --secondary-color: #ede5c1;
+            --dark-bg: #1a2f2f;
+            --dark-card: #2a3b3b;
+            --accent-green: #34d399;
+            --accent-orange: #fb923c;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+        }
+
         body {
-            font-family: 'Noto Sans Arabic', sans-serif;
-            background: linear-gradient(135deg, #f3f4f6 0%, #dbeafe 100%);
+            font-family: 'Tajawal', 'Cairo', sans-serif;
+            background: var(--secondary-color);
             min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
+            margin: 0;
+            color: var(--primary-color);
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
         }
-        .dark-mode {
-            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-            color: #e5e7eb;
+
+        body.dark-mode {
+            background: var(--dark-bg);
+            color: var(--secondary-color);
         }
-        .dark-mode .sidebar {
-            background-color: #111827;
-        }
-        .dark-mode .card, .dark-mode .table {
-            background-color: #1f2937;
-            color: #e5e7eb;
-        }
-        .dark-mode .stats-card {
-            background-color: #374151;
-        }
-        .dark-mode .table-dark {
-            background-color: #111827;
-        }
-        .sidebar {
-            height: 100vh;
-            position: fixed;
+
+        .header {
+            position: sticky;
             top: 0;
-            right: 0;
-            width: 250px;
-            background-color: #1e40af;
-            padding-top: 20px;
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            padding: 1rem 0.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .icon-card {
+            background: #ffffff;
+            border-radius: 0.8rem;
+            padding: 1rem;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            cursor: pointer;
             transition: transform 0.3s ease;
         }
-        .sidebar-hidden {
-            transform: translateX(250px);
+
+        .icon-card:hover {
+            transform: translateY(-5px);
         }
-        .sidebar .nav-link {
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            margin: 5px 10px;
-            transition: background-color 0.3s ease;
+
+        .icon-card.active {
+            background: var(--primary-color);
+            color: var(--secondary-color);
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            background-color: #60a5fa;
+
+        body.dark-mode .icon-card {
+            background: var(--dark-card);
+            color: var(--secondary-color);
         }
-        .content {
-            margin-right: 250px;
-            padding: 20px;
-            transition: margin-right 0.3s ease;
+
+        .icon-card i {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
         }
-        .content-full {
-            margin-right: 0;
+
+        .icon-card span {
+            font-size: 0.75rem;
+            font-weight: 600;
         }
-        .toggle-sidebar {
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.5rem;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 0.8rem;
+            padding: 1rem;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            margin-bottom: 1rem;
+        }
+
+        body.dark-mode .card {
+            background: var(--dark-card);
+            color: var(--secondary-color);
+        }
+
+        .modal {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
             z-index: 1000;
         }
-        .table {
-            background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            overflow-x: auto;
+
+        .modal.show {
+            display: flex;
         }
-        .table-dark {
-            background-color: #1e40af;
+
+        .modal-content {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-radius: 0.8rem;
+            max-width: 95%;
+            width: 450px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
-        .table th, .table td {
-            vertical-align: middle;
-            text-align: center;
+
+        body.dark-mode .modal-content {
+            background: var(--dark-card);
+            color: var(--secondary-color);
         }
-        .table th.sortable {
-            cursor: pointer;
+
+        input, select {
+            padding: 0.7rem;
+            margin: 0.5rem 0;
+            width: 100%;
+            border: 1px solid var(--primary-color);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            background: var(--secondary-color);
+            color: var(--primary-color);
         }
-        .table th.sortable::after {
-            content: '\f0dc';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            margin-right: 5px;
-            color: #fff;
+
+        input:focus, select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            outline: none;
         }
-        .btn-whatsapp, .btn-update, .btn-details {
-            background-color: #34d399;
-            color: #fff;
-            border-radius: 8px;
-            padding: 6px 12px;
-            margin: 2px;
-        }
-        .btn-whatsapp:hover, .btn-update:hover, .btn-details:hover {
-            background-color: #10b981;
-        }
-        .btn-export, .btn-refresh, .btn-pdf {
-            background-color: #60a5fa;
-            color: #fff;
-            border-radius: 8px;
-            padding: 8px 15px;
-            margin-left: 10px;
-        }
-        .btn-export:hover, .btn-refresh:hover, .btn-pdf:hover {
-            background-color: #3b82f6;
-        }
-        .card {
+
+        button {
+            padding: 0.7rem 1.2rem;
             border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            font-weight: 600;
         }
+
+        button:hover {
+            background: #2a3b3b;
+        }
+
+        .report-btn { background: var(--accent-blue); }
+        .export-btn { background: var(--accent-green); }
+        .whatsapp-btn { background: #25D366; }
+        .voice-btn { background: var(--accent-orange); }
+        .tool-btn { background: var(--accent-blue); }
+
+        .fab {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .visitor-card {
+            background: #ffffff;
+            border-radius: 0.8rem;
+            padding: 1rem;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            margin-bottom: 1rem;
+        }
+
+        body.dark-mode .visitor-card {
+            background: var(--dark-card);
+        }
+
+        .visitor-card img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 0.5rem;
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .status-badge.approved { background: var(--accent-green); color: #fff; }
+        .status-badge.pending { background: var(--accent-orange); color: #fff; }
+        .status-badge.rejected { background: var(--accent-red); color: #fff; }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            color: var(--secondary-color);
+            background: var(--primary-color);
+        }
+
+        .notification.show { display: flex; align-items: center; }
+        .notification.error { background: var(--accent-red); }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(24, 78, 78, 0.9);
+            color: var(--secondary-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.5rem;
+            z-index: 1000;
+        }
+
+        .loading.show { display: block; }
+
+        .chart-container {
+            margin: 1.5rem 0;
+            background: #ffffff;
+            border-radius: 0.8rem;
+            padding: 1rem;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        body.dark-mode .chart-container {
+            background: var(--dark-card);
+        }
+
+        .search-filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
+
         .stats-card {
-            background-color: #fff;
-            border-radius: 10px;
-            padding: 15px;
+            background: #ffffff;
+            border-radius: 0.8rem;
+            padding: 1rem;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
-        .chart-container {
-            margin: 20px 0;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+
+        body.dark-mode .stats-card {
+            background: var(--dark-card);
         }
-        #loading, #error {
-            font-size: 1.2rem;
-            text-align: center;
-            margin: 20px 0;
+
+        @media (min-width: 769px) {
+            .visitor-card { display: none; }
+            .table { background: #ffffff; border-radius: 0.5rem; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); }
+            body.dark-mode .table { background: var(--dark-card); }
+            th, td { padding: 0.8rem; text-align: right; border-bottom: 1px solid var(--secondary-color); }
+            body.dark-mode th, body.dark-mode td { border-bottom: 1px solid #3a4b4b; }
+            th { background: var(--primary-color); color: var(--secondary-color); }
         }
-        #loading i {
-            color: #1e40af;
-        }
-        .search-container, .filter-container {
-            margin-bottom: 20px;
-        }
-        .modal-content {
-            border-radius: 12px;
-        }
-        .login-container {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
+
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(250px);
-            }
-            .sidebar-active {
-                transform: translateX(0);
-            }
-            .content {
-                margin-right: 0;
-            }
-            .table {
-                font-size: 0.85rem;
-            }
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-            .filter-container {
-                flex-direction: column;
-            }
-            .filter-container select, .filter-container input {
-                width: 100%;
-                margin-bottom: 10px;
-            }
+            .table { display: none; }
+            .header h1 { font-size: 0.9rem; }
+            .icon-grid { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); padding: 0.5rem; }
+            .icon-card i { font-size: 1.6rem; }
+            .icon-card span { font-size: 0.7rem; }
+            .modal-content { width: 95%; padding: 1rem; }
+            .stats-container { grid-template-columns: 1fr; }
+        }
+
+        @media print {
+            .header, .icon-grid, .search-filter-container, button, .modal, .notification, .loading, .fab { display: none; }
+            .table { box-shadow: none; border: 1px solid var(--primary-color); }
+            th, td { border: 1px solid var(--primary-color); }
+            .stats-container { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="login-container" id="loginContainer">
-        <h2 class="text-center mb-4">تسجيل الدخول</h2>
-        <form id="loginForm">
-            <div class="mb-3">
-                <label for="passcode" class="form-label">رمز المرور</label>
-                <input type="password" class="form-control" id="passcode" placeholder="أدخل رمز المرور (1234)" required>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">دخول</button>
-        </form>
+    <div class="modal show" id="loginModal">
+        <div class="modal-content">
+            <h2 class="text-center mb-3" data-translate="login">تسجيل الدخول</h2>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label" data-translate="username">اسم المستخدم</label>
+                    <input type="text" class="form-control" id="username" placeholder="أدخل اسم المستخدم" required>
+                </div>
+                <div class="mb-3">
+                    <label for="passcode" class="form-label" data-translate="passcode">رمز المرور</label>
+                    <input type="password" class="form-control" id="passcode" placeholder="أدخل رمز المرور (1234)" required>
+                </div>
+                <button type="submit" class="w-100" data-translate="login">دخول</button>
+            </form>
+        </div>
     </div>
 
     <div class="d-none" id="mainContainer">
-        <!-- شريط جانبي -->
-        <nav class="sidebar sidebar-hidden" id="sidebar">
-            <h3 class="text-center text-white mb-4">إدارة الزائرين لمؤسسة بذرة عطاء</h3>
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#list" data-bs-toggle="tab">قائمة الزائرين</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#form" data-bs-toggle="tab">إدخال بيانات</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#stats" data-bs-toggle="tab">إحصائيات</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#settings" data-bs-toggle="tab">الإعدادات</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="logout()">تسجيل الخروج</a>
-                </li>
-            </ul>
-        </nav>
-
-        <!-- زر تبديل الشريط الجانبي -->
-        <button class="btn btn-primary toggle-sidebar" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
-
-        <!-- المحتوى الرئيسي -->
-        <div class="content content-full" id="content">
-            <div class="tab-content">
-                <!-- تبويب قائمة الزائرين -->
-                <div class="tab-pane fade show active" id="list">
-                    <h1 class="mb-4">قائمة الزائرين</h1>
-                    <div class="stats-container">
-                        <div class="stats-card">
-                            <h5>إجمالي الزائرين</h5>
-                            <p id="totalVisitors">0</p>
-                        </div>
-                        <div class="stats-card">
-                            <h5>منجز (موافق)</h5>
-                            <p id="approvedCount">0</p>
-                        </div>
-                        <div class="stats-card">
-                            <h5>غير منجز (معلق)</h5>
-                            <p id="pendingCount">0</p>
-                        </div>
-                        <div class="stats-card">
-                            <h5>قيد الإنجاز (مرفوض)</h5>
-                            <p id="rejectedCount">0</p>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                    <div class="search-container">
-                        <input type="text" id="searchInput" class="form-control" placeholder="ابحث بالاسم، العنوان، أو سبب الزيارة...">
-                    </div>
-                    <div class="filter-container d-flex flex-wrap justify-content-between">
-                        <select id="statusFilter" class="form-select w-25 me-2">
-                            <option value="">جميع الحالات</option>
-                            <option value="موافق">موافق</option>
-                            <option value="معلق">معلق</option>
-                            <option value="مرفوض">مرفوض</option>
-                        </select>
-                        <input type="date" id="dateFrom" class="form-control w-25 me-2">
-                        <input type="date" id="dateTo" class="form-control w-25 me-2">
-                        <div>
-                            <button class="btn btn-export" onclick="exportToExcel()">تصدير Excel</button>
-                            <button class="btn btn-pdf" onclick="exportToPDF()">تصدير PDF</button>
-                            <button class="btn btn-refresh" onclick="fetchData()">تحديث</button>
-                        </div>
-                    </div>
-                    <div id="loading" class="text-center">
-                        <i class="fas fa-spinner fa-spin"></i> جارٍ تحميل البيانات...
-                    </div>
-                    <div id="error" class="alert alert-danger d-none" role="alert"></div>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-bordered">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th class="sortable" data-key="طابع_زمني">طابع زمني</th>
-                                    <th class="sortable" data-key="الاسم">الاسم</th>
-                                    <th class="sortable" data-key="العنوان">العنوان</th>
-                                    <th>رقم الهاتف</th>
-                                    <th class="sortable" data-key="سبب_زيارة">سبب زيارة</th>
-                                    <th>حالة الطلب</th>
-                                    <th>الملاحظات</th>
-                                    <th>إجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody id="visitorTable"></tbody>
-                        </table>
-                    </div>
+        <header class="header">
+            <h1 data-translate="systemTitle">نظام إدارة الزائرين</h1>
+            <div>
+                <button onclick="toggleDarkMode()" aria-label="تبديل الوضع الداكن"><i class="fas fa-moon"></i></button>
+                <button onclick="showSettingsModal()" aria-label="إعدادات"><i class="fas fa-cog"></i></button>
+                <button onclick="logout()" aria-label="تسجيل الخروج"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </header>
+        <div class="tab-content" id="home">
+            <div class="stats-container">
+                <div class="stats-card">
+                    <h6 data-translate="totalVisitors">إجمالي الزائرين</h6>
+                    <p id="totalVisitors">0</p>
                 </div>
-                <!-- تبويب إدخال البيانات -->
-                <div class="tab-pane fade" id="form">
-                    <h1 class="mb-4">إدخال بيانات الزائر</h1>
-                    <div class="card">
-                        <div class="card-body">
-                            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSe4GPM9HbcVgOwIkqilH3x5b1R-egxz-JF5-leYeBVzIhVBbA/viewform?embedded=true" width="100%" height="959" frameborder="0" marginheight="0" marginwidth="0">جارٍ التحميل…</iframe>
-                        </div>
-                    </div>
+                <div class="stats-card">
+                    <h6 data-translate="completed">منجز</h6>
+                    <p id="completedVisitors">0</p>
                 </div>
-                <!-- تبويب الإحصائيات -->
-                <div class="tab-pane fade" id="stats">
-                    <h1 class="mb-4">إحصائيات الزائرين</h1>
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="stats-container">
-                                <div class="stats-card">
-                                    <h5>نسبة المنجز</h5>
-                                    <p id="approvedPercent">0%</p>
-                                </div>
-                                <div class="stats-card">
-                                    <h5>نسبة غير المنجز</h5>
-                                    <p id="pendingPercent">0%</p>
-                                </div>
-                                <div class="stats-card">
-                                    <h5>نسبة قيد الإنجاز</h5>
-                                    <p id="rejectedPercent">0%</p>
-                                </div>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="dailyChart"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="trendChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
+                <div class="stats-card">
+                    <h6 data-translate="pending">قيد الإنجاز</h6>
+                    <p id="pendingVisitors">0</p>
                 </div>
-                <!-- تبويب الإعدادات -->
-                <div class="tab-pane fade" id="settings">
-                    <h1 class="mb-4">الإعدادات</h1>
-                    <div class="card">
-                        <div class="card-body">
-                            <h5>تخصيص الواجهة</h5>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="darkModeToggle">
-                                <label class="form-check-label" for="darkModeToggle">تفعيل الوضع المظلم</label>
-                            </div>
-                        </div>
+            </div>
+            <div class="icon-grid">
+                <div class="icon-card nav-link active" data-tab="list"><i class="fas fa-list"></i><span data-translate="visitorList">قائمة الزائرين</span></div>
+                <div class="icon-card nav-link" data-tab="form"><i class="fas fa-file-alt"></i><span data-translate="addData">إدخال بيانات</span></div>
+                <div class="icon-card nav-link" data-tab="reports"><i class="fas fa-chart-bar"></i><span data-translate="reports">تقارير</span></div>
+                <div class="icon-card nav-link" data-tab="tools"><i class="fas fa-tools"></i><span data-translate="tools">أدوات</span></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="tab-content d-none" id="list">
+                <button class="btn btn-secondary mb-3" onclick="goBack()" aria-label="العودة" data-translate="back"><i class="fas fa-arrow-right"></i> العودة</button>
+                <div class="search-filter-container">
+                    <input type="text" id="searchInput" placeholder="ابحث بالاسم أو العنوان..." aria-label="بحث" data-translate="searchPlaceholder">
+                    <button class="voice-btn" onclick="startVoiceSearch()" aria-label="بحث صوتي"><i class="fas fa-microphone"></i></button>
+                    <select id="statusFilter" aria-label="تصفية حسب الحالة">
+                        <option value="" data-translate="allStatuses">جميع الحالات</option>
+                        <option value="موافق" data-translate="approved">موافق</option>
+                        <option value="معلق" data-translate="pending">معلق</option>
+                        <option value="مرفوض" data-translate="rejected">مرفوض</option>
+                    </select>
+                    <input type="date" id="dateFrom" aria-label="من التاريخ">
+                    <input type="date" id="dateTo" aria-label="إلى التاريخ">
+                    <button class="export-btn" onclick="exportToExcel()" aria-label="تصدير Excel" data-translate="exportExcel">تصدير Excel</button>
+                </div>
+                <div class="loading" id="loading"><i class="fas fa-spinner fa-spin"></i> جارٍ التحميل...</div>
+                <div class="notification" id="notification"></div>
+                <div id="visitorCards"></div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>تاريخ</th>
+                            <th>الاسم</th>
+                            <th>العنوان</th>
+                            <th>رقم الهاتف</th>
+                            <th>سبب الزيارة</th>
+                            <th>صورة</th>
+                            <th>الحالة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitorTable"></tbody>
+                </table>
+            </div>
+            <div class="tab-content d-none" id="form">
+                <button class="btn btn-secondary mb-3" onclick="goBack()" aria-label="العودة" data-translate="back"><i class="fas fa-arrow-right"></i> العودة</button>
+                <div class="card">
+                    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSe4GPM9HbcVgOwIkqilH3x5b1R-egxz-JF5-leYeBVzIhVBbA/viewform?embedded=true" width="100%" height="800" frameborder="0">جارٍ التحميل...</iframe>
+                </div>
+            </div>
+            <div class="tab-content d-none" id="reports">
+                <button class="btn btn-secondary mb-3" onclick="goBack()" aria-label="العودة" data-translate="back"><i class="fas fa-arrow-right"></i> العودة</button>
+                <div class="card chart-container">
+                    <select id="reportType" aria-label="نوع التقرير">
+                        <option value="daily" data-translate="dailyReport">يومي</option>
+                        <option value="weekly" data-translate="weeklyReport">أسبوعي</option>
+                        <option value="monthly" data-translate="monthlyReport">شهري</option>
+                    </select>
+                    <button class="report-btn" onclick="generateReport()" data-translate="generateReport">إنشاء التقرير</button>
+                    <button class="export-btn" onclick="exportReportToPDF()" data-translate="exportPDF">تصدير PDF</button>
+                    <canvas id="reportChart"></canvas>
+                </div>
+            </div>
+            <div class="tab-content d-none" id="tools">
+                <button class="btn btn-secondary mb-3" onclick="goBack()" aria-label="العودة" data-translate="back"><i class="fas fa-arrow-right"></i> العودة</button>
+                <div class="card">
+                    <h5 data-translate="tools">أدوات إدارة الزائرين</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="tool-btn" onclick="sendBulkNotifications()" data-translate="bulkNotifications">إرسال إشعارات جماعية</button>
+                        <button class="tool-btn" onclick="showStatsModal()" data-translate="quickStats">إحصائيات سريعة</button>
+                        <button class="tool-btn" onclick="showBackupModal()" data-translate="backup">نسخ احتياطي</button>
+                        <button class="tool-btn" onclick="exportToCSV()">تصدير CSV</button>
+                        <button class="tool-btn" onclick="importDataModal()">استيراد بيانات</button>
+                        <button class="tool-btn" onclick="showFilterByReason()">تصفية حسب السبب</button>
+                        <button class="tool-btn" onclick="showVisitorHistory()">سجل الزائر</button>
+                        <button class="tool-btn" onclick="sendSMS()">إرسال SMS</button>
+                        <button class="tool-btn" onclick="showMapView()">عرض الخريطة</button>
+                        <button class="tool-btn" onclick="showCalendarView()">عرض التقويم</button>
+                        <button class="tool-btn" onclick="generateQRCode()">إنشاء رمز QR</button>
+                        <button class="tool-btn" onclick="showVisitorStats()">إحصائيات الزائر</button>
+                        <button class="tool-btn" onclick="exportToJSON()">تصدير JSON</button>
+                        <button class="tool-btn" onclick="showDataValidation()">التحقق من البيانات</button>
+                        <button class="tool-btn" onclick="showAuditLog()">سجل التدقيق</button>
+                        <button class="tool-btn" onclick="showRoleManagement()">إدارة الأدوار</button>
+                        <button class="tool-btn" onclick="showDataExportOptions()">خيارات التصدير</button>
+                        <button class="tool-btn" onclick="showNotificationSettings()">إعدادات الإشعارات</button>
+                        <button class="tool-btn" onclick="showDataArchive()">أرشفة البيانات</button>
+                        <button class="tool-btn" onclick="showAnalyticsDashboard()">لوحة تحليلات</button>
                     </div>
                 </div>
             </div>
         </div>
+        <button class="fab" onclick="showQuickActions()" aria-label="إجراءات سريعة"><i class="fas fa-plus"></i></button>
     </div>
 
-    <!-- Modal لإرسال رسالة واتساب -->
-    <div class="modal fade" id="whatsappModal" tabindex="-1" aria-labelledby="whatsappModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="whatsappModalLabel">إرسال رسالة واتساب</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="whatsappMessage" class="form-label">الرسالة</label>
-                        <textarea class="form-control" id="whatsappMessage" rows="4"></textarea>
-                    </div>
-                    <input type="hidden" id="whatsappPhone">
-                    <input type="hidden" id="whatsappName">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="button" class="btn btn-whatsapp" id="sendWhatsapp">إرسال</button>
-                </div>
+    <div class="modal" id="quickActionsModal">
+        <div class="modal-content">
+            <h5>إجراءات سريعة</h5>
+            <div class="d-flex flex-column gap-2">
+                <button onclick="navigateTo('form')" data-translate="addData">إضافة زائر</button>
+                <button onclick="fetchData()">تحديث البيانات</button>
+                <button onclick="generateReport()" data-translate="generateReport">إنشاء تقرير</button>
+                <button onclick="sendBulkNotifications()" data-translate="bulkNotifications">إرسال إشعارات</button>
             </div>
+            <button class="btn btn-secondary mt-3" onclick="closeModal('quickActionsModal')">إغلاق</button>
         </div>
     </div>
 
-    <!-- Modal لمعاينة التفاصيل -->
-    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="detailsModalLabel">تفاصيل الزائر</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>الاسم:</strong> <span id="detailName"></span></p>
-                    <p><strong>العنوان:</strong> <span id="detailAddress"></span></p>
-                    <p><strong>رقم الهاتف:</strong> <span id="detailPhone"></span></p>
-                    <p><strong>سبب الزيارة:</strong> <span id="detailReason"></span></p>
-                    <p><strong>حالة الطلب:</strong> <span id="detailStatus"></span></p>
-                    <p><strong>الملاحظات:</strong> <span id="detailNotes"></span></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal لإضافة ملاحظات -->
-    <div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="notesModalLabel">إضافة ملاحظات</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="notesInput" class="form-label">الملاحظات</label>
-                        <textarea class="form-control" id="notesInput" rows="4"></textarea>
-                    </div>
-                    <input type="hidden" id="notesRowIndex">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="button" class="btn btn-update" id="saveNotes">حفظ</button>
-                </div>
-            </div>
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h5>الإعدادات</h5>
+            <label for="languageSelect">اللغة:</label>
+            <select id="languageSelect">
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+            </select>
+            <label for="notificationSelect">الإشعارات:</label>
+            <select id="notificationSelect">
+                <option value="all">الكل</option>
+                <option value="errors">الأخطاء فقط</option>
+                <option value="none">تعطيل</option>
+            </select>
+            <button class="btn btn-secondary mt-3" onclick="closeModal('settingsModal')">إغلاق</button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
     <script>
-        // تسجيل الدخول
-        const loginForm = document.getElementById('loginForm');
-        const loginContainer = document.getElementById('loginContainer');
-        const mainContainer = document.getElementById('mainContainer');
-        loginForm.addEventListener('submit', (e) => {
+        const { jsPDF } = window.jspdf;
+        let visitorsData = [];
+        let language = localStorage.getItem('language') || 'ar';
+        let notificationSettings = localStorage.getItem('notificationSettings') || 'all';
+
+        const translations = {
+            ar: {
+                login: 'تسجيل الدخول',
+                username: 'اسم المستخدم',
+                passcode: 'رمز المرور',
+                systemTitle: 'نظام إدارة الزائرين',
+                visitorList: 'قائمة الزائرين',
+                addData: 'إدخال بيانات',
+                reports: 'تقارير',
+                tools: 'أدوات',
+                searchPlaceholder: 'ابحث بالاسم أو العنوان...',
+                allStatuses: 'جميع الحالات',
+                approved: 'موافق',
+                pending: 'معلق',
+                rejected: 'مرفوض',
+                exportExcel: 'تصدير Excel',
+                exportPDF: 'تصدير PDF',
+                voiceSearch: 'بحث صوتي',
+                back: 'العودة',
+                dailyReport: 'تقرير يومي',
+                weeklyReport: 'تقرير أسبوعي',
+                monthlyReport: 'تقرير شهري',
+                generateReport: 'إنشاء التقرير',
+                bulkNotifications: 'إرسال إشعارات جماعية',
+                quickStats: 'إحصائيات سريعة',
+                backup: 'نسخ احتياطي',
+                noData: 'لا توجد بيانات للتصدير',
+                reportGenerated: 'تم إنشاء التقرير',
+                totalVisitors: 'إجمالي الزائرين',
+                completed: 'منجز',
+                pending: 'قيد الإنجاز',
+                exportCSV: 'تصدير CSV',
+                importData: 'استيراد بيانات',
+                filterByReason: 'تصفية حسب السبب',
+                visitorHistory: 'سجل الزائر',
+                sendSMS: 'إرسال SMS',
+                mapView: 'عرض الخريطة',
+                calendarView: 'عرض التقويم',
+                generateQR: 'إنشاء رمز QR',
+                visitorStats: 'إحصائيات الزائر',
+                exportJSON: 'تصدير JSON',
+                dataValidation: 'التحقق من البيانات',
+                auditLog: 'سجل التدقيق',
+                roleManagement: 'إدارة الأدوار',
+                exportOptions: 'خيارات التصدير',
+                notificationSettings: 'إعدادات الإشعارات',
+                dataArchive: 'أرشفة البيانات',
+                analyticsDashboard: 'لوحة تحليلات'
+            },
+            en: {
+                login: 'Login',
+                username: 'Username',
+                passcode: 'Passcode',
+                systemTitle: 'Visitor Management System',
+                visitorList: 'Visitor List',
+                addData: 'Add Data',
+                reports: 'Reports',
+                tools: 'Tools',
+                searchPlaceholder: 'Search by name or address...',
+                allStatuses: 'All Statuses',
+                approved: 'Approved',
+                pending: 'Pending',
+                rejected: 'Rejected',
+                exportExcel: 'Export to Excel',
+                exportPDF: 'Export to PDF',
+                voiceSearch: 'Voice Search',
+                back: 'Back',
+                dailyReport: 'Daily Report',
+                weeklyReport: 'Weekly Report',
+                monthlyReport: 'Monthly Report',
+                generateReport: 'Generate Report',
+                bulkNotifications: 'Send Bulk Notifications',
+                quickStats: 'Quick Statistics',
+                backup: 'Backup',
+                noData: 'No data to export',
+                reportGenerated: 'Report generated',
+                totalVisitors: 'Total Visitors',
+                completed: 'Completed',
+                pending: 'In Progress',
+                exportCSV: 'Export CSV',
+                importData: 'Import Data',
+                filterByReason: 'Filter by Reason',
+                visitorHistory: 'Visitor History',
+                sendSMS: 'Send SMS',
+                mapView: 'Map View',
+                calendarView: 'Calendar View',
+                generateQR: 'Generate QR Code',
+                visitorStats: 'Visitor Statistics',
+                exportJSON: 'Export JSON',
+                dataValidation: 'Data Validation',
+                auditLog: 'Audit Log',
+                roleManagement: 'Role Management',
+                exportOptions: 'Export Options',
+                notificationSettings: 'Notification Settings',
+                dataArchive: 'Data Archive',
+                analyticsDashboard: 'Analytics Dashboard'
+            }
+        };
+
+        const showToast = (message, type = 'success') => {
+            if (notificationSettings === 'none' || (notificationSettings === 'errors' && type !== 'error')) return;
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'left',
+                backgroundColor: type === 'error' ? '#ef4444' : '#184e4e',
+                className: 'notification'
+            }).showToast();
+        };
+
+        const showModal = (modalId) => document.getElementById(modalId)?.classList.add('show');
+        const closeModal = (modalId) => document.getElementById(modalId)?.classList.remove('show');
+
+        const goBack = () => {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector('.nav-link[data-tab="list"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('d-none'));
+            document.getElementById('home').classList.remove('d-none');
+        };
+
+        const navigateTo = (tab) => {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`.nav-link[data-tab="${tab}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('d-none'));
+            document.getElementById(tab).classList.remove('d-none');
+            closeModal('quickActionsModal');
+        };
+
+        const toggleDarkMode = () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        };
+
+        const showQuickActions = () => showModal('quickActionsModal');
+        const showSettingsModal = () => showModal('settingsModal');
+
+        const logout = () => {
+            document.getElementById('mainContainer').classList.add('d-none');
+            document.getElementById('loginModal').classList.add('show');
+        };
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            const passcode = document.getElementById('passcode').value;
-            if (passcode === '1234') {
-                loginContainer.classList.add('d-none');
-                mainContainer.classList.remove('d-none');
+            if (document.getElementById('passcode').value === '1234') {
+                document.getElementById('loginModal').classList.remove('show');
+                document.getElementById('mainContainer').classList.remove('d-none');
                 fetchData();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم تسجيل الدخول',
-                    showConfirmButton: false,
-                    timer: 1500
-                });
+                if (notificationSettings === 'all') {
+                    new Notification(translations[language].systemTitle, { body: translations[language].welcome || 'مرحبًا بك!' });
+                }
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'رمز المرور غير صحيح',
-                });
+                showToast(translations[language].invalidPasscode || 'رمز المرور غير صحيح', 'error');
             }
         });
 
-        // تسجيل الخروج
-        window.logout = () => {
-            loginContainer.classList.remove('d-none');
-            mainContainer.classList.add('d-none');
-            document.getElementById('passcode').value = '';
-            document.getElementById('sidebar').classList.add('sidebar-hidden');
-            document.getElementById('content').classList.add('content-full');
-            Swal.fire({
-                icon: 'success',
-                title: 'تم تسجيل الخروج',
-                showConfirmButton: false,
-                timer: 1500
-            });
-        };
-
-        // تبديل الشريط الجانبي
-        window.toggleSidebar = () => {
-            const sidebar = document.getElementById('sidebar');
-            const content = document.getElementById('content');
-            sidebar.classList.toggle('sidebar-hidden');
-            sidebar.classList.toggle('sidebar-active');
-            content.classList.toggle('content-full');
-        };
-
-        const tableBody = document.getElementById('visitorTable');
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
-        const searchInput = document.getElementById('searchInput');
-        const statusFilter = document.getElementById('statusFilter');
-        const dateFrom = document.getElementById('dateFrom');
-        const dateTo = document.getElementById('dateTo');
-        const totalVisitors = document.getElementById('totalVisitors');
-        const approvedCount = document.getElementById('approvedCount');
-        const pendingCount = document.getElementById('pendingCount');
-        const rejectedCount = document.getElementById('rejectedCount');
-        const approvedPercent = document.getElementById('approvedPercent');
-        const pendingPercent = document.getElementById('pendingPercent');
-        const rejectedPercent = document.getElementById('rejectedPercent');
-        let visitorsData = [];
-        let sortKey = 'طابع_زمني';
-        let sortDirection = 1;
-        let statusChart = null;
-        let dailyChart = null;
-        let trendChart = null;
-
-        // جلب البيانات
-        window.fetchData = () => {
-            loading.classList.remove('d-none');
-            error.classList.add('d-none');
-            fetch('https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhh-b3f2ZczyaClShcWq45vbvJCmmQ4pVN4mjNQkbrohDH2K6BgClTAWLYpKKJKAnEfjqnWHFNVwtB7LV2ewfA1Uef9oSeDCDfyUnk2CLrtEgTC5JMPkqkwg61ejgS9frZf124TonikpSaMW-yvltYMngaQVWXOfdtS9gJSCInfm2EPQBKnYFCJW4HhjtjCbQ4uY3-h51NO5jlW95r78Ao2hReRD0pHzZYEKrJSzN1bdqApMvaJQkzIc6-yABZ9csvbaww-fgjMIo9LWioe06XL_NbHEA&lib=ML5bJp3GfFYISAc4Pke6lsGS1Rtfp0tvW')
-                .then(response => {
-                    if (!response.ok) throw new Error('فشل في جلب البيانات: ' + response.status);
-                    return response.json();
-                })
+        const fetchData = () => {
+            document.getElementById('loading').classList.add('show');
+            fetch('https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLjHEmqkIgExqy4RwwUtGUexPM8oy0r0x4zAmY-QH5fAUYH1gDOnntPaSlitvBR3eM3eZ9ZHslCpTW64l3JhTAFGEcfcok4ZNWqKxejX0E0uOsoe6vIB5pB4AmwjtZAPK14AlooQBwWpgLJt6e4A-JnATyWdEnNL_vaKgDd0TtApaqslLB01tsivipYVeEHSx96_K7ZPpot9awhKW8kDOAfz6DyS0BnwVMV6wERDjGccgHjPxUA6Hz0-Zg-ZIwsBdAw14O6tP3Ylxyq8pWgfKLtI1_GESg&lib=ML5bJp3GfFYISAc4Pke6lsGS1Rtfp0tvW')
+                .then(response => response.json())
                 .then(data => {
-                    loading.classList.add('d-none');
-                    if (!Array.isArray(data) || data.length === 0) {
-                        error.textContent = 'لا توجد بيانات متاحة';
-                        error.classList.remove('d-none');
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ',
-                            text: 'لا توجد بيانات لعرضها',
-                        });
-                        return;
-                    }
+                    document.getElementById('loading').classList.remove('show');
                     visitorsData = data;
-                    renderTable(data);
-                    updateStats(data);
-                    updateCharts(data);
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم تحميل البيانات',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
+                    filterAndRender();
+                    updateStats();
                 })
                 .catch(err => {
-                    loading.classList.add('d-none');
-                    error.textContent = 'خطأ: ' + err.message;
-                    error.classList.remove('d-none');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'فشل في جلب البيانات: ' + err.message,
-                    });
-                    console.error('Error fetching data:', err);
+                    document.getElementById('loading').classList.remove('show');
+                    showToast('خطأ في جلب البيانات', 'error');
                 });
         };
 
-        // عرض البيانات في الجدول
+        const updateStats = () => {
+            const total = visitorsData.length;
+            const completed = visitorsData.filter(row => row['حالة_الطلب'] === 'موافق').length;
+            const pending = visitorsData.filter(row => row['حالة_الطلب'] === 'معلق').length;
+
+            document.getElementById('totalVisitors').textContent = total;
+            document.getElementById('completedVisitors').textContent = completed;
+            document.getElementById('pendingVisitors').textContent = pending;
+        };
+
+        const filterAndRender = () => {
+            const searchValue = document.getElementById('searchInput').value.toLowerCase();
+            const statusValue = document.getElementById('statusFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            let filteredData = visitorsData;
+            if (searchValue) {
+                filteredData = filteredData.filter(row =>
+                    (row['الاسم'] || '').toLowerCase().includes(searchValue) ||
+                    (row['العنوان'] || '').toLowerCase().includes(searchValue)
+                );
+            }
+            if (statusValue) {
+                filteredData = filteredData.filter(row => row['حالة_الطلب'] === statusValue);
+            }
+            if (dateFrom && dateTo) {
+                filteredData = filteredData.filter(row => {
+                    const date = new Date(row['طابع_زمني']);
+                    return date >= new Date(dateFrom) && date <= new Date(dateTo);
+                });
+            }
+
+            renderTable(filteredData);
+            renderCards(filteredData);
+        };
+
         const renderTable = (data) => {
+            const tableBody = document.getElementById('visitorTable');
             tableBody.innerHTML = '';
-            const sortedData = [...data].sort((a, b) => {
-                const aValue = a[sortKey] || '';
-                const bValue = b[sortKey] || '';
-                if (sortKey === 'طابع_زمني') {
-                    return sortDirection * (new Date(aValue) - new Date(bValue));
-                }
-                return sortDirection * aValue.localeCompare(bValue);
-            });
-            sortedData.forEach(row => {
+            data.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${row['طابع_زمني'] || 'غير متوفر'}</td>
@@ -556,348 +727,525 @@
                     <td>${row['العنوان'] || 'غير متوفر'}</td>
                     <td>${row['رقم_الهاتف'] || 'غير متوفر'}</td>
                     <td>${row['سبب_زيارة'] || 'غير متوفر'}</td>
+                    <td><img src="${row['صورة'] || 'https://via.placeholder.com/50'}" alt="صورة الزائر" style="width: 50px; height: 50px; border-radius: 50%;"></td>
+                    <td><span class="status-badge ${row['حالة_الطلب'] === 'موافق' ? 'approved' : row['حالة_الطلب'] === 'معلق' ? 'pending' : 'rejected'}">${row['حالة_الطلب'] || 'غير محدد'}</span></td>
                     <td>
-                        <select class="form-select status-select" data-row-index="${row.rowIndex}">
-                            <option value="موافق" ${row['حالة_الطلب'] === 'موافق' ? 'selected' : ''}>موافق</option>
-                            <option value="معلق" ${row['حالة_الطلب'] === 'معلق' ? 'selected' : ''}>معلق</option>
-                            <option value="مرفوض" ${row['حالة_الطلب'] === 'مرفوض' ? 'selected' : ''}>مرفوض</option>
-                        </select>
-                    </td>
-                    <td>${row['الملاحظات'] || 'لا توجد ملاحظات'}</td>
-                    <td>
-                        <button class="btn btn-whatsapp" onclick="openWhatsappModal('${row['رقم_الهاتف'] || ''}', '${row['الاسم'] || 'الزائر'}')">
-                            <i class="fab fa-whatsapp me-1"></i>
-                        </button>
-                        <button class="btn btn-update" onclick="updateStatus(${row.rowIndex}, this.parentElement.previousElementSibling.previousElementSibling.querySelector('select').value, '${row['الملاحظات'] || ''}')">
-                            <i class="fas fa-save me-1"></i>
-                        </button>
-                        <button class="btn btn-details" onclick="openDetailsModal(${JSON.stringify(row).replace(/"/g, '&quot;')})">
-                            <i class="fas fa-eye me-1"></i>
-                        </button>
-                        <button class="btn btn-update" onclick="openNotesModal(${row.rowIndex}, '${row['الملاحظات'] || ''}')">
-                            <i class="fas fa-sticky-note me-1"></i>
-                        </button>
+                        <button class="whatsapp-btn" onclick="window.open('https://wa.me/${row['رقم_الهاتف']}?text=مرحبًا ${row['الاسم']}', '_blank')" aria-label="واتساب"><i class="fab fa-whatsapp"></i></button>
+                        <button class="tool-btn" onclick="updateVisitorStatus(${visitorsData.indexOf(row)})" aria-label="تحديث الحالة">تحديث</button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
             });
+        };
 
-            document.querySelectorAll('.status-select').forEach(select => {
-                select.addEventListener('change', (e) => {
-                    const rowIndex = e.target.dataset.rowIndex;
-                    const status = e.target.value;
-                    updateStatus(rowIndex, status, visitorsData.find(row => row.rowIndex == rowIndex)['الملاحظات'] || '');
-                });
+        const renderCards = (data) => {
+            const visitorCards = document.getElementById('visitorCards');
+            visitorCards.innerHTML = '';
+            data.forEach(row => {
+                const card = document.createElement('div');
+                card.className = 'visitor-card';
+                card.innerHTML = `
+                    <img src="${row['صورة'] || 'https://via.placeholder.com/50'}" alt="صورة الزائر">
+                    <div><strong>تاريخ:</strong> ${row['طابع_زمني'] || 'غير متوفر'}</div>
+                    <div><strong>الاسم:</strong> ${row['الاسم'] || 'غير متوفر'}</div>
+                    <div><strong>العنوان:</strong> ${row['العنوان'] || 'غير متوفر'}</div>
+                    <div><strong>رقم الهاتف:</strong> ${row['رقم_الهاتف'] || 'غير متوفر'}</div>
+                    <div><strong>سبب الزيارة:</strong> ${row['سبب_زيارة'] || 'غير متوفر'}</div>
+                    <div><strong>الحالة:</strong> <span class="status-badge ${row['حالة_الطلب'] === 'موافق' ? 'approved' : row['حالة_الطلب'] === 'معلق' ? 'pending' : 'rejected'}">${row['حالة_الطلب'] || 'غير محدد'}</span></div>
+                    <button class="whatsapp-btn" onclick="window.open('https://wa.me/${row['رقم_الهاتف']}?text=مرحبًا ${row['الاسم']}', '_blank')" aria-label="واتساب"><i class="fab fa-whatsapp"></i></button>
+                    <button class="tool-btn" onclick="updateVisitorStatus(${visitorsData.indexOf(row)})" aria-label="تحديث الحالة">تحديث</button>
+                `;
+                visitorCards.appendChild(card);
             });
         };
 
-        // تحديث حالة الطلب والملاحظات
-        window.updateStatus = (rowIndex, status, notes) => {
-            fetch('https://script.google.com/macros/s/AKfycbwg4wRQxSmHLn_LTLoADc2Lttu168iNpA12DyMzE4XORfNSDrP1-otd90ZJR_P1ztoW/exec', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rowIndex, status, notes })
-            })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.result === 'success') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'تم التحديث',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-                        fetchData();
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ',
-                            text: 'فشل تحديث البيانات: ' + result.error,
-                        });
-                    }
-                })
-                .catch(err => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'خطأ: ' + err.message,
-                    });
-                });
-        };
+        const generateReport = () => {
+            const reportType = document.getElementById('reportType').value;
+            const today = new Date();
+            let filteredData = visitorsData;
+            let startDate, endDate, title;
 
-        // تحديث الإحصائيات
-        const updateStats = (data) => {
-            const total = data.length;
-            const approved = data.filter(row => row['حالة_الطلب'] === 'موافق').length;
-            const pending = data.filter(row => row['حالة_الطلب'] === 'معلق').length;
-            const rejected = data.filter(row => row['حالة_الطلب'] === 'مرفوض').length;
-            totalVisitors.textContent = total;
-            approvedCount.textContent = approved;
-            pendingCount.textContent = pending;
-            rejectedCount.textContent = rejected;
-            approvedPercent.textContent = total ? `${((approved / total) * 100).toFixed(1)}%` : '0%';
-            pendingPercent.textContent = total ? `${((pending / total) * 100).toFixed(1)}%` : '0%';
-            rejectedPercent.textContent = total ? `${((rejected / total) * 100).toFixed(1)}%` : '0%';
-        };
+            if (reportType === 'daily') {
+                startDate = new Date(today.setHours(0, 0, 0, 0));
+                endDate = new Date(today.setHours(23, 59, 59, 999));
+                title = translations[language].dailyReport;
+            } else if (reportType === 'weekly') {
+                startDate = new Date(today.setDate(today.getDate() - today.getDay()));
+                endDate = new Date(today.setDate(today.getDate() + 6));
+                title = translations[language].weeklyReport;
+            } else if (reportType === 'monthly') {
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                title = translations[language].monthlyReport;
+            }
 
-        // تحديث المخططات
-        const updateCharts = (data) => {
-            // مخطط دائري
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
-            const stats = {
-                موافق: data.filter(row => row['حالة_الطلب'] === 'موافق').length,
-                معلق: data.filter(row => row['حالة_الطلب'] === 'معلق').length,
-                مرفوض: data.filter(row => row['حالة_الطلب'] === 'مرفوض').length
-            };
-            if (statusChart) statusChart.destroy();
-            statusChart = new Chart(ctxStatus, {
-                type: 'pie',
+            filteredData = visitorsData.filter(row => {
+                const date = new Date(row['طابع_زمني']);
+                return date >= startDate && date <= endDate;
+            });
+
+            const ctx = document.getElementById('reportChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: ['منجز (موافق)', 'غير منجز (معلق)', 'قيد الإنجاز (مرفوض)'],
+                    labels: [translations[language].approved, translations[language].pending, translations[language].rejected],
                     datasets: [{
-                        data: [stats.موافق, stats.معلق, stats.مرفوض],
-                        backgroundColor: ['#34d399', '#facc15', '#f87171']
+                        label: title,
+                        data: [
+                            filteredData.filter(row => row['حالة_الطلب'] === 'موافق').length,
+                            filteredData.filter(row => row['حالة_الطلب'] === 'معلق').length,
+                            filteredData.filter(row => row['حالة_الطلب'] === 'مرفوض').length
+                        ],
+                        backgroundColor: ['#34d399', '#fb923c', '#ef4444']
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { position: 'top' }
+                        title: { display: true, text: title }
                     }
                 }
             });
 
-            // مخطط شريطي
-            const dailyData = {};
-            data.forEach(row => {
-                const date = new Date(row['طابع_زمني']).toLocaleDateString('ar-SA');
-                dailyData[date] = (dailyData[date] || 0) + 1;
-            });
-            const ctxDaily = document.getElementById('dailyChart').getContext('2d');
-            if (dailyChart) dailyChart.destroy();
-            dailyChart = new Chart(ctxDaily, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(dailyData),
-                    datasets: [{
-                        label: 'عدد الزيارات',
-                        data: Object.values(dailyData),
-                        backgroundColor: '#60a5fa'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-
-            // مخطط خطي
-            const trendData = {};
-            data.forEach(row => {
-                const date = new Date(row['طابع_زمني']).toLocaleDateString('ar-SA');
-                trendData[date] = (trendData[date] || 0) + 1;
-            });
-            const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            if (trendChart) trendChart.destroy();
-            trendChart = new Chart(ctxTrend, {
-                type: 'line',
-                data: {
-                    labels: Object.keys(trendData),
-                    datasets: [{
-                        label: 'اتجاه الزيارات',
-                        data: Object.values(trendData),
-                        borderColor: '#60a5fa',
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
+            showToast(translations[language].reportGenerated);
         };
 
-        // فتح نافذة واتساب
-        window.openWhatsappModal = (phone, name) => {
-            if (!phone || phone === 'غير متوفر') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'رقم الهاتف غير متاح',
-                });
+        const exportReportToPDF = () => {
+            if (!visitorsData.length) {
+                showToast(translations[language].noData, 'error');
                 return;
             }
-            document.getElementById('whatsappPhone').value = phone;
-            document.getElementById('whatsappName').value = name;
-            document.getElementById('whatsappMessage').value = `مرحبًا ${name}، شكرًا لزيارتك!`;
-            new bootstrap.Modal(document.getElementById('whatsappModal')).show();
-        };
 
-        // إرسال رسالة واتساب
-        document.getElementById('sendWhatsapp').addEventListener('click', () => {
-            const phone = document.getElementById('whatsappPhone').value;
-            const message = document.getElementById('whatsappMessage').value;
-            if (message.trim()) {
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-                bootstrap.Modal.getInstance(document.getElementById('whatsappModal')).hide();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم الإرسال',
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'يرجى إدخال رسالة',
-                });
+            const reportType = document.getElementById('reportType').value;
+            const today = new Date();
+            let filteredData = visitorsData;
+            let startDate, endDate, title;
+
+            if (reportType === 'daily') {
+                startDate = new Date(today.setHours(0, 0, 0, 0));
+                endDate = new Date(today.setHours(23, 59, 59, 999));
+                title = translations[language].dailyReport;
+            } else if (reportType === 'weekly') {
+                startDate = new Date(today.setDate(today.getDate() - today.getDay()));
+                endDate = new Date(today.setDate(today.getDate() + 6));
+                title = translations[language].weeklyReport;
+            } else if (reportType === 'monthly') {
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                title = translations[language].monthlyReport;
             }
-        });
 
-        // فتح نافذة التفاصيل
-        window.openDetailsModal = (row) => {
-            document.getElementById('detailName').textContent = row['الاسم'] || 'غير متوفر';
-            document.getElementById('detailAddress').textContent = row['العنوان'] || 'غير متوفر';
-            document.getElementById('detailPhone').textContent = row['رقم_الهاتف'] || 'غير متوفر';
-            document.getElementById('detailReason').textContent = row['سبب_زيارة'] || 'غير متوفر';
-            document.getElementById('detailStatus').textContent = row['حالة_الطلب'] || 'غير متوفر';
-            document.getElementById('detailNotes').textContent = row['الملاحظات'] || 'لا توجد ملاحظات';
-            new bootstrap.Modal(document.getElementById('detailsModal')).show();
-        };
-
-        // فتح نافذة الملاحظات
-        window.openNotesModal = (rowIndex, notes) => {
-            document.getElementById('notesRowIndex').value = rowIndex;
-            document.getElementById('notesInput').value = notes;
-            new bootstrap.Modal(document.getElementById('notesModal')).show();
-        };
-
-        // حفظ الملاحظات
-        document.getElementById('saveNotes').addEventListener('click', () => {
-            const rowIndex = document.getElementById('notesRowIndex').value;
-            const notes = document.getElementById('notesInput').value;
-            const status = visitorsData.find(row => row.rowIndex == rowIndex)['حالة_الطلب'] || 'معلق';
-            updateStatus(rowIndex, status, notes);
-            bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
-        });
-
-        // البحث والتصفية
-        const filterTable = () => {
-            const searchText = searchInput.value.toLowerCase();
-            const status = statusFilter.value;
-            const fromDate = dateFrom.value ? new Date(dateFrom.value) : null;
-            const toDate = dateTo.value ? new Date(dateTo.value) : null;
-            const filteredData = visitorsData.filter(row => {
-                const matchesSearch = (row['الاسم'] || '').toLowerCase().includes(searchText) || 
-                                     (row['العنوان'] || '').toLowerCase().includes(searchText) || 
-                                     (row['سبب_زيارة'] || '').toLowerCase().includes(searchText);
-                const matchesStatus = !status || (row['حالة_الطلب'] || '') === status;
-                const rowDate = new Date(row['طابع_زمني']);
-                const matchesDate = (!fromDate || rowDate >= fromDate) && (!toDate || rowDate <= toDate);
-                return matchesSearch && matchesStatus && matchesDate;
+            filteredData = visitorsData.filter(row => {
+                const date = new Date(row['طابع_زمني']);
+                return date >= startDate && date <= endDate;
             });
-            renderTable(filteredData);
-            updateStats(filteredData);
-            updateCharts(filteredData);
+
+            const doc = new jsPDF();
+            doc.setFont('Tajawal');
+            doc.setFontSize(16);
+            doc.text(`${title} - ${translations[language].systemTitle}`, 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`من: ${moment(startDate).locale(language).format('LL')} إلى: ${moment(endDate).locale(language).format('LL')}`, 105, 30, { align: 'center' });
+
+            doc.autoTable({
+                head: [['تاريخ', 'الاسم', 'العنوان', 'رقم الهاتف', 'سبب الزيارة', 'الحالة']],
+                body: filteredData.map(row => [
+                    moment(row['طابع_زمني']).locale(language).format('LLL') || 'غير متوفر',
+                    row['الاسم'] || 'غير متوفر',
+                    row['العنوان'] || 'غير متوفر',
+                    row['رقم_الهاتف'] || 'غير متوفر',
+                    row['سبب_زيارة'] || 'غير متوفر',
+                    row['حالة_الطلب'] || 'غير محدد'
+                ]),
+                startY: 40,
+                styles: { font: 'Tajawal', halign: 'right', fontSize: 10 },
+                headStyles: { fillColor: [24, 78, 78], textColor: [237, 229, 193] },
+                theme: 'striped'
+            });
+
+            const total = filteredData.length;
+            const completed = filteredData.filter(row => row['حالة_الطلب'] === 'موافق').length;
+            const pending = filteredData.filter(row => row['حالة_الطلب'] === 'معلق').length;
+            const rejected = filteredData.filter(row => row['حالة_الطلب'] === 'مرفوض').length;
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(12);
+            doc.text(translations[language].totalVisitors + `: ${total}`, 105, finalY, { align: 'center' });
+            doc.text(translations[language].completed + `: ${completed} (${total ? ((completed / total) * 100).toFixed(1) : 0}%)`, 105, finalY + 10, { align: 'center' });
+            doc.text(translations[language].pending + `: ${pending} (${total ? ((pending / total) * 100).toFixed(1) : 0}%)`, 105, finalY + 20, { align: 'center' });
+            doc.text(translations[language].rejected + `: ${rejected} (${total ? ((rejected / total) * 100).toFixed(1) : 0}%)`, 105, finalY + 30, { align: 'center' });
+
+            const chartCanvas = document.getElementById('reportChart');
+            html2canvas(chartCanvas).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                doc.addPage();
+                doc.setFontSize(12);
+                doc.text('توزيع الحالات', 105, 20, { align: 'center' });
+                doc.addImage(imgData, 'PNG', 10, 30, 190, 100);
+                doc.save(`${reportType}_Visitors_Report.pdf`);
+                showToast(translations[language].exportPDF);
+            });
         };
 
-        // تصدير إلى Excel
-        window.exportToExcel = () => {
-            if (visitorsData.length === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'لا توجد بيانات للتصدير',
-                });
+        const exportToExcel = () => {
+            if (!visitorsData.length) {
+                showToast(translations[language].noData, 'error');
                 return;
             }
             const ws = XLSX.utils.json_to_sheet(visitorsData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Visitors');
             XLSX.write(wb, 'Visitors.xlsx');
-            Swal.fire({
-                icon: 'success',
-                title: 'تم التصدير',
-                showConfirmButton: false,
-                timer: 1500
-            });
+            showToast(translations[language].exportExcel);
         };
 
-        // تصدير إلى PDF
-        window.exportToPDF = () => {
-            if (visitorsData.length === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'لا توجد بيانات للتصدير',
-                });
+        const exportToCSV = () => {
+            if (!visitorsData.length) {
+                showToast(translations[language].noData, 'error');
                 return;
             }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont("Amiri", "normal");
-            doc.setFontSize(16);
-            doc.text('قائمة الزائرين', 105, 10, { align: 'center' });
-            doc.autoTable({
-                head: [['طابع زمني', 'الاسم', 'العنوان', 'رقم الهاتف', 'سبب زيارة', 'حالة الطلب', 'الملاحظات']],
-                body: visitorsData.map(row => [
-                    row['طابع_زمني'] || 'غير متوفر',
-                    row['الاسم'] || 'غير متوفر',
-                    row['العنوان'] || 'غير متوفر',
-                    row['رقم_الهاتف'] || 'غير متوفر',
-                    row['سبب_زيارة'] || 'غير متوفر',
-                    row['حالة_الطلب'] || 'غير متوفر',
-                    row['الملاحظات'] || 'لا توجد ملاحظات'
-                ]),
-                styles: { font: 'Amiri', halign: 'center' }
-            });
-            doc.save('Visitors.pdf');
-            Swal.fire({
-                icon: 'success',
-                title: 'تم التصدير إلى PDF',
-                showConfirmButton: false,
-                timer: 1500
-            });
+            const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(visitorsData));
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Visitors.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(translations[language].exportCSV);
         };
 
-        // فرز الجدول
-        document.querySelectorAll('.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                const key = th.dataset.key;
-                if (sortKey === key) {
-                    sortDirection *= -1;
-                } else {
-                    sortKey = key;
-                    sortDirection = 1;
+        const importDataModal = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="importData">استيراد بيانات</h5>
+                    <input type="file" id="importFile" accept=".json,.csv">
+                    <button class="btn btn-primary mt-2" onclick="importData()">استيراد</button>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const importData = () => {
+            const file = document.getElementById('importFile').files[0];
+            if (!file) {
+                showToast('يرجى اختيار ملف', 'error');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (file.name.endsWith('.json')) {
+                    visitorsData = JSON.parse(e.target.result);
+                } else if (file.name.endsWith('.csv')) {
+                    const ws = XLSX.utils.csv_to_sheet(e.target.result);
+                    visitorsData = XLSX.utils.sheet_to_json(ws);
                 }
-                renderTable(visitorsData);
+                filterAndRender();
+                updateStats();
+                showToast('تم استيراد البيانات بنجاح');
+            };
+            reader.readAsText(file);
+        };
+
+        const startVoiceSearch = () => {
+            if (!('webkitSpeechRecognition' in window)) {
+                showToast('البحث الصوتي غير مدعوم', 'error');
+                return;
+            }
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = language === 'ar' ? 'ar-SA' : 'en-US';
+            recognition.onresult = (event) => {
+                document.getElementById('searchInput').value = event.results[0][0].transcript;
+                filterAndRender();
+            };
+            recognition.start();
+        };
+
+        const sendBulkNotifications = () => {
+            if (notificationSettings === 'none') return;
+            visitorsData.forEach(row => {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(`${translations[language].visitor}: ${row['الاسم']}`, { body: `${translations[language].status}: ${row['حالة_الطلب']}` });
+                }
             });
-        });
+            showToast(translations[language].bulkNotifications);
+        };
 
-        // الوضع المظلم/الفاتح
-        document.getElementById('darkModeToggle').addEventListener('change', (e) => {
-            document.body.classList.toggle('dark-mode', e.target.checked);
-        });
+        const showStatsModal = () => {
+            const total = visitorsData.length;
+            const completed = visitorsData.filter(row => row['حالة_الطلب'] === 'موافق').length;
+            const pending = visitorsData.filter(row => row['حالة_الطلب'] === 'معلق').length;
+            const rejected = visitorsData.filter(row => row['حالة_الطلب'] === 'مرفوض').length;
 
-        searchInput.addEventListener('input', filterTable);
-        statusFilter.addEventListener('change', filterTable);
-        dateFrom.addEventListener('change', filterTable);
-        dateTo.addEventListener('change', filterTable);
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="quickStats">إحصائيات سريعة</h5>
+                    <p>${translations[language].totalVisitors}: ${total}</p>
+                    <p>${translations[language].completed}: ${completed} (${total ? ((completed / total) * 100).toFixed(1) : 0}%)</p>
+                    <p>${translations[language].pending}: ${pending} (${total ? ((pending / total) * 100).toFixed(1) : 0}%)</p>
+                    <p>${translations[language].rejected}: ${rejected} (${total ? ((rejected / total) * 100).toFixed(1) : 0}%)</p>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
 
-        // إعداد التبويبات
+        const showBackupModal = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="backup">نسخ احتياطي</h5>
+                    <p>تنزيل نسخة احتياطية كملف JSON.</p>
+                    <button class="btn btn-primary mb-2" onclick="downloadBackup()">تنزيل</button>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const downloadBackup = () => {
+            const dataStr = JSON.stringify(visitorsData);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'visitors_backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(translations[language].backup);
+        };
+
+        const showFilterByReason = () => {
+            const reasons = [...new Set(visitorsData.map(row => row['سبب_زيارة']))];
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="filterByReason">تصفية حسب السبب</h5>
+                    <select id="reasonFilter">
+                        <option value="">جميع الأسباب</option>
+                        ${reasons.map(reason => `<option value="${reason}">${reason}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary mt-2" onclick="filterByReason()">تطبيق</button>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const filterByReason = () => {
+            const reason = document.getElementById('reasonFilter').value;
+            const filteredData = reason ? visitorsData.filter(row => row['سبب_زيارة'] === reason) : visitorsData;
+            renderTable(filteredData);
+            renderCards(filteredData);
+        };
+
+        const showVisitorHistory = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="visitorHistory">سجل الزائر</h5>
+                    <input type="text" id="visitorName" placeholder="أدخل اسم الزائر">
+                    <button class="btn btn-primary mt-2" onclick="searchVisitorHistory()">بحث</button>
+                    <div id="historyResults"></div>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const searchVisitorHistory = () => {
+            const name = document.getElementById('visitorName').value.toLowerCase();
+            const results = visitorsData.filter(row => (row['الاسم'] || '').toLowerCase().includes(name));
+            const historyDiv = document.getElementById('historyResults');
+            historyDiv.innerHTML = results.length ? results.map(row => `<p>${row['طابع_زمني']}: ${row['حالة_الطلب']}</p>`).join('') : 'لا توجد نتائج';
+        };
+
+        const sendSMS = () => {
+            showToast('ميزة إرسال SMS غير متوفرة حاليًا', 'error');
+        };
+
+        const showMapView = () => {
+            showToast('عرض الخريطة غير متوفر حاليًا', 'error');
+        };
+
+        const showCalendarView = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="calendarView">عرض التقويم</h5>
+                    <p>التقويم التفاعلي قيد التطوير.</p>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const generateQRCode = () => {
+            showToast('إنشاء رمز QR غير متوفر حاليًا', 'error');
+        };
+
+        const showVisitorStats = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="visitorStats">إحصائيات الزائر</h5>
+                    <input type="text" id="visitorStatsName" placeholder="أدخل اسم الزائر">
+                    <button class="btn btn-primary mt-2" onclick="showIndividualStats()">عرض</button>
+                    <div id="statsResults"></div>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showIndividualStats = () => {
+            const name = document.getElementById('visitorStatsName').value.toLowerCase();
+            const results = visitorsData.filter(row => (row['الاسم'] || '').toLowerCase().includes(name));
+            const statsDiv = document.getElementById('statsResults');
+            statsDiv.innerHTML = results.length ? `عدد الزيارات: ${results.length}` : 'لا توجد نتائج';
+        };
+
+        const exportToJSON = () => {
+            downloadBackup();
+        };
+
+        const showDataValidation = () => {
+            const invalidRecords = visitorsData.filter(row => !row['الاسم'] || !row['رقم_الهاتف'] || !row['سبب_زيارة']);
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="dataValidation">التحقق من البيانات</h5>
+                    <p>السجلات غير المكتملة: ${invalidRecords.length}</p>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showAuditLog = () => {
+            showToast('سجل التدقيق غير متوفر حاليًا', 'error');
+        };
+
+        const showRoleManagement = () => {
+            showToast('إدارة الأدوار غير متوفرة حاليًا', 'error');
+        };
+
+        const showDataExportOptions = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5 data-translate="exportOptions">خيارات التصدير</h5>
+                    <button class="btn btn-primary mb-2" onclick="exportToExcel()">Excel</button>
+                    <button class="btn btn-primary mb-2" onclick="exportToCSV()">CSV</button>
+                    <button class="btn btn-primary mb-2" onclick="exportToJSON()">JSON</button>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showNotificationSettings = () => {
+            showModal('settingsModal');
+        };
+
+        const showDataArchive = () => {
+            showToast('أرشفة البيانات غير متوفرة حاليًا', 'error');
+        };
+
+        const showAnalyticsDashboard = () => {
+            showToast('لوحة التحليلات قيد التطوير', 'error');
+        };
+
+        const updateVisitorStatus = (index) => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>تحديث حالة الزائر</h5>
+                    <select id="newStatus">
+                        <option value="موافق">موافق</option>
+                        <option value="معلق">معلق</option>
+                        <option value="مرفوض">مرفوض</option>
+                    </select>
+                    <button class="btn btn-primary mt-2" onclick="saveStatus(${index})">حفظ</button>
+                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const saveStatus = (index) => {
+            visitorsData[index]['حالة_الطلب'] = document.getElementById('newStatus').value;
+            filterAndRender();
+            updateStats();
+            showToast('تم تحديث الحالة');
+        };
+
+        document.getElementById('searchInput').addEventListener('input', filterAndRender);
+        document.getElementById('statusFilter').addEventListener('change', filterAndRender);
+        document.getElementById('dateFrom').addEventListener('change', filterAndRender);
+        document.getElementById('dateTo').addEventListener('change', filterAndRender);
+
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
-                if (window.innerWidth <= 768) {
-                    toggleSidebar();
-                }
+                const tab = link.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.add('d-none'));
+                document.getElementById(tab).classList.remove('d-none');
+                if (tab === 'list') fetchData();
             });
+        });
+
+        document.getElementById('languageSelect').addEventListener('change', (e) => {
+            language = e.target.value;
+            localStorage.setItem('language', language);
+            moment.locale(language);
+            updateLanguage();
+        });
+
+        document.getElementById('notificationSelect').addEventListener('change', (e) => {
+            notificationSettings = e.target.value;
+            localStorage.setItem('notificationSettings', notificationSettings);
+        });
+
+        const updateLanguage = () => {
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.dataset.translate;
+                el.textContent = translations[language][key] || el.textContent;
+            });
+        };
+
+        if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(reg => console.log('Service Worker Registered', reg))
+                .catch(err => console.error('Service Worker Registration Failed', err));
+        }
+
+        if ('Notification' in window && Notification.permission !== 'denied') {
+            Notification.requestPermission();
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 && !document.getElementById('loading').classList.contains('show')) {
+                document.getElementById('loading').classList.add('show');
+                setTimeout(() => {
+                    fetchData();
+                }, 1000);
+            }
         });
     </script>
 </body>
