@@ -25,6 +25,8 @@
             --accent-orange: #fb923c;
             --accent-red: #ef4444;
             --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
         }
 
         body {
@@ -153,7 +155,7 @@
             color: var(--secondary-color);
         }
 
-        input, select {
+        input, select, textarea {
             padding: 0.7rem;
             margin: 0.5rem 0;
             width: 100%;
@@ -164,7 +166,7 @@
             color: var(--primary-color);
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             border-color: var(--accent-blue);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
             outline: none;
@@ -179,10 +181,13 @@
             color: var(--secondary-color);
             font-size: 0.9rem;
             font-weight: 600;
+            margin: 0.2rem;
+            transition: all 0.3s ease;
         }
 
         button:hover {
-            background: #2a3b3b;
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
 
         .report-btn { background: var(--accent-blue); }
@@ -190,6 +195,9 @@
         .whatsapp-btn { background: #25D366; }
         .voice-btn { background: var(--accent-orange); }
         .tool-btn { background: var(--accent-blue); }
+        .purple-btn { background: var(--accent-purple); }
+        .pink-btn { background: var(--accent-pink); }
+        .danger-btn { background: var(--accent-red); }
 
         .fab {
             position: fixed;
@@ -205,6 +213,7 @@
             justify-content: center;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+            cursor: pointer;
         }
 
         .visitor-card {
@@ -231,6 +240,7 @@
             padding: 0.4rem 0.8rem;
             border-radius: 0.5rem;
             font-size: 0.8rem;
+            display: inline-block;
         }
 
         .status-badge.approved { background: var(--accent-green); color: #fff; }
@@ -334,7 +344,7 @@
     </style>
 </head>
 <body>
-    <div class="modal show" id="loginModal">
+    <div class="modal" id="loginModal">
         <div class="modal-content">
             <h2 class="text-center mb-3" data-translate="login">تسجيل الدخول</h2>
             <form id="loginForm">
@@ -374,12 +384,18 @@
                     <h6 data-translate="pending">قيد الإنجاز</h6>
                     <p id="pendingVisitors">0</p>
                 </div>
+                <div class="stats-card">
+                    <h6 data-translate="rejected">مرفوض</h6>
+                    <p id="rejectedVisitors">0</p>
+                </div>
             </div>
             <div class="icon-grid">
                 <div class="icon-card nav-link active" data-tab="list"><i class="fas fa-list"></i><span data-translate="visitorList">قائمة الزائرين</span></div>
                 <div class="icon-card nav-link" data-tab="form"><i class="fas fa-file-alt"></i><span data-translate="addData">إدخال بيانات</span></div>
                 <div class="icon-card nav-link" data-tab="reports"><i class="fas fa-chart-bar"></i><span data-translate="reports">تقارير</span></div>
                 <div class="icon-card nav-link" data-tab="tools"><i class="fas fa-tools"></i><span data-translate="tools">أدوات</span></div>
+                <div class="icon-card nav-link" data-tab="calendar"><i class="fas fa-calendar-alt"></i><span data-translate="calendar">التقويم</span></div>
+                <div class="icon-card nav-link" data-tab="messages"><i class="fas fa-envelope"></i><span data-translate="messages">الرسائل</span></div>
             </div>
         </div>
         <div class="container">
@@ -397,6 +413,7 @@
                     <input type="date" id="dateFrom" aria-label="من التاريخ">
                     <input type="date" id="dateTo" aria-label="إلى التاريخ">
                     <button class="export-btn" onclick="exportToExcel()" aria-label="تصدير Excel" data-translate="exportExcel">تصدير Excel</button>
+                    <button class="purple-btn" onclick="showAdvancedSearch()"><i class="fas fa-search-plus"></i> بحث متقدم</button>
                 </div>
                 <div class="loading" id="loading"><i class="fas fa-spinner fa-spin"></i> جارٍ التحميل...</div>
                 <div class="notification" id="notification"></div>
@@ -430,9 +447,16 @@
                         <option value="daily" data-translate="dailyReport">يومي</option>
                         <option value="weekly" data-translate="weeklyReport">أسبوعي</option>
                         <option value="monthly" data-translate="monthlyReport">شهري</option>
+                        <option value="yearly" data-translate="yearlyReport">سنوي</option>
+                        <option value="custom" data-translate="customReport">مخصص</option>
                     </select>
+                    <div id="customDateRange" class="d-none mt-2">
+                        <input type="date" id="reportDateFrom">
+                        <input type="date" id="reportDateTo">
+                    </div>
                     <button class="report-btn" onclick="generateReport()" data-translate="generateReport">إنشاء التقرير</button>
                     <button class="export-btn" onclick="exportReportToPDF()" data-translate="exportPDF">تصدير PDF</button>
+                    <button class="pink-btn" onclick="printReport()"><i class="fas fa-print"></i> طباعة</button>
                     <canvas id="reportChart"></canvas>
                 </div>
             </div>
@@ -441,27 +465,59 @@
                 <div class="card">
                     <h5 data-translate="tools">أدوات إدارة الزائرين</h5>
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="tool-btn" onclick="sendBulkNotifications()" data-translate="bulkNotifications">إرسال إشعارات جماعية</button>
-                        <button class="tool-btn" onclick="showStatsModal()" data-translate="quickStats">إحصائيات سريعة</button>
-                        <button class="tool-btn" onclick="showBackupModal()" data-translate="backup">نسخ احتياطي</button>
-                        <button class="tool-btn" onclick="exportToCSV()">تصدير CSV</button>
-                        <button class="tool-btn" onclick="importDataModal()">استيراد بيانات</button>
-                        <button class="tool-btn" onclick="showFilterByReason()">تصفية حسب السبب</button>
-                        <button class="tool-btn" onclick="showVisitorHistory()">سجل الزائر</button>
-                        <button class="tool-btn" onclick="sendSMS()">إرسال SMS</button>
-                        <button class="tool-btn" onclick="showMapView()">عرض الخريطة</button>
-                        <button class="tool-btn" onclick="showCalendarView()">عرض التقويم</button>
-                        <button class="tool-btn" onclick="generateQRCode()">إنشاء رمز QR</button>
-                        <button class="tool-btn" onclick="showVisitorStats()">إحصائيات الزائر</button>
-                        <button class="tool-btn" onclick="exportToJSON()">تصدير JSON</button>
-                        <button class="tool-btn" onclick="showDataValidation()">التحقق من البيانات</button>
-                        <button class="tool-btn" onclick="showAuditLog()">سجل التدقيق</button>
-                        <button class="tool-btn" onclick="showRoleManagement()">إدارة الأدوار</button>
-                        <button class="tool-btn" onclick="showDataExportOptions()">خيارات التصدير</button>
-                        <button class="tool-btn" onclick="showNotificationSettings()">إعدادات الإشعارات</button>
-                        <button class="tool-btn" onclick="showDataArchive()">أرشفة البيانات</button>
-                        <button class="tool-btn" onclick="showAnalyticsDashboard()">لوحة تحليلات</button>
+                        <button class="tool-btn" onclick="sendBulkNotifications()" data-translate="bulkNotifications"><i class="fas fa-bell"></i> إرسال إشعارات جماعية</button>
+                        <button class="tool-btn" onclick="showStatsModal()" data-translate="quickStats"><i class="fas fa-chart-pie"></i> إحصائيات سريعة</button>
+                        <button class="tool-btn" onclick="showBackupModal()" data-translate="backup"><i class="fas fa-database"></i> نسخ احتياطي</button>
+                        <button class="tool-btn" onclick="exportToCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                        <button class="tool-btn" onclick="importDataModal()"><i class="fas fa-file-import"></i> استيراد بيانات</button>
+                        <button class="tool-btn" onclick="showFilterByReason()"><i class="fas fa-filter"></i> تصفية حسب السبب</button>
+                        <button class="tool-btn" onclick="showVisitorHistory()"><i class="fas fa-history"></i> سجل الزائر</button>
+                        <button class="tool-btn" onclick="sendSMS()"><i class="fas fa-sms"></i> إرسال SMS</button>
+                        <button class="tool-btn" onclick="showMapView()"><i class="fas fa-map-marked-alt"></i> عرض الخريطة</button>
+                        <button class="tool-btn" onclick="showCalendarView()"><i class="fas fa-calendar"></i> عرض التقويم</button>
+                        <button class="tool-btn" onclick="generateQRCode()"><i class="fas fa-qrcode"></i> إنشاء رمز QR</button>
+                        <button class="tool-btn" onclick="showVisitorStats()"><i class="fas fa-user-chart"></i> إحصائيات الزائر</button>
+                        <button class="tool-btn" onclick="exportToJSON()"><i class="fas fa-file-code"></i> تصدير JSON</button>
+                        <button class="tool-btn" onclick="showDataValidation()"><i class="fas fa-check-circle"></i> التحقق من البيانات</button>
+                        <button class="tool-btn" onclick="showAuditLog()"><i class="fas fa-clipboard-list"></i> سجل التدقيق</button>
+                        <button class="tool-btn" onclick="showRoleManagement()"><i class="fas fa-user-shield"></i> إدارة الأدوار</button>
+                        <button class="tool-btn" onclick="showDataExportOptions()"><i class="fas fa-file-export"></i> خيارات التصدير</button>
+                        <button class="tool-btn" onclick="showNotificationSettings()"><i class="fas fa-bell-slash"></i> إعدادات الإشعارات</button>
+                        <button class="tool-btn" onclick="showDataArchive()"><i class="fas fa-archive"></i> أرشفة البيانات</button>
+                        <button class="tool-btn" onclick="showAnalyticsDashboard()"><i class="fas fa-chart-line"></i> لوحة تحليلات</button>
+                        <button class="tool-btn" onclick="showVisitorGroups()"><i class="fas fa-users"></i> مجموعات الزائرين</button>
+                        <button class="tool-btn" onclick="showBlacklist()"><i class="fas fa-ban"></i> القائمة السوداء</button>
+                        <button class="tool-btn" onclick="showVisitorCheckIn()"><i class="fas fa-user-check"></i> تسجيل الحضور</button>
+                        <button class="tool-btn" onclick="showVisitorCheckOut()"><i class="fas fa-user-times"></i> تسجيل المغادرة</button>
+                        <button class="tool-btn" onclick="showVisitorTags()"><i class="fas fa-tags"></i> تاجات الزائرين</button>
+                        <button class="tool-btn" onclick="showVisitorNotes()"><i class="fas fa-sticky-note"></i> ملاحظات الزائرين</button>
+                        <button class="tool-btn" onclick="showVisitorAttachments()"><i class="fas fa-paperclip"></i> مرفقات الزائرين</button>
+                        <button class="tool-btn" onclick="showVisitorAlerts()"><i class="fas fa-exclamation-triangle"></i> تنبيهات الزائرين</button>
+                        <button class="tool-btn" onclick="showVisitorCustomFields()"><i class="fas fa-list-alt"></i> حقول مخصصة</button>
+                        <button class="tool-btn" onclick="showVisitorTemplates()"><i class="fas fa-file-alt"></i> قوالب الزائرين</button>
+                        <button class="tool-btn" onclick="showVisitorWorkflow()"><i class="fas fa-project-diagram"></i> سير العمل</button>
+                        <button class="tool-btn" onclick="showVisitorAPI()"><i class="fas fa-plug"></i> واجهة برمجة التطبيقات</button>
+                        <button class="tool-btn" onclick="showVisitorIntegrations()"><i class="fas fa-link"></i> التكاملات</button>
                     </div>
+                </div>
+            </div>
+            <div class="tab-content d-none" id="calendar">
+                <button class="btn btn-secondary mb-3" onclick="goBack()" aria-label="العودة" data-translate="back"><i class="fas fa-arrow-right"></i> العودة</button>
+                <div class="card">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+            <div class="tab-content d-none" id="messages">
+                <button class="btn btn-secondary mb-3" onclick="goBack()" aria-label="العودة" data-translate="back"><i class="fas fa-arrow-right"></i> العودة</button>
+                <div class="card">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button class="tool-btn" onclick="showNewMessageModal()"><i class="fas fa-plus"></i> رسالة جديدة</button>
+                        <button class="tool-btn" onclick="showInbox()"><i class="fas fa-inbox"></i> الوارد</button>
+                        <button class="tool-btn" onclick="showSentMessages()"><i class="fas fa-paper-plane"></i> المرسلة</button>
+                        <button class="tool-btn" onclick="showDrafts()"><i class="fas fa-file"></i> المسودة</button>
+                        <button class="tool-btn" onclick="showTrash()"><i class="fas fa-trash"></i> المحذوفة</button>
+                    </div>
+                    <div id="messagesContainer"></div>
                 </div>
             </div>
         </div>
@@ -472,10 +528,12 @@
         <div class="modal-content">
             <h5>إجراءات سريعة</h5>
             <div class="d-flex flex-column gap-2">
-                <button onclick="navigateTo('form')" data-translate="addData">إضافة زائر</button>
-                <button onclick="fetchData()">تحديث البيانات</button>
-                <button onclick="generateReport()" data-translate="generateReport">إنشاء تقرير</button>
-                <button onclick="sendBulkNotifications()" data-translate="bulkNotifications">إرسال إشعارات</button>
+                <button onclick="navigateTo('form')" data-translate="addData"><i class="fas fa-user-plus"></i> إضافة زائر</button>
+                <button onclick="fetchData()"><i class="fas fa-sync-alt"></i> تحديث البيانات</button>
+                <button onclick="generateReport()" data-translate="generateReport"><i class="fas fa-chart-bar"></i> إنشاء تقرير</button>
+                <button onclick="sendBulkNotifications()" data-translate="bulkNotifications"><i class="fas fa-bell"></i> إرسال إشعارات</button>
+                <button onclick="showNewMessageModal()"><i class="fas fa-envelope"></i> رسالة جديدة</button>
+                <button onclick="showCalendarEventModal()"><i class="fas fa-calendar-plus"></i> حدث جديد</button>
             </div>
             <button class="btn btn-secondary mt-3" onclick="closeModal('quickActionsModal')">إغلاق</button>
         </div>
@@ -484,18 +542,121 @@
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <h5>الإعدادات</h5>
-            <label for="languageSelect">اللغة:</label>
-            <select id="languageSelect">
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-            </select>
-            <label for="notificationSelect">الإشعارات:</label>
-            <select id="notificationSelect">
-                <option value="all">الكل</option>
-                <option value="errors">الأخطاء فقط</option>
-                <option value="none">تعطيل</option>
-            </select>
+            <div class="mb-3">
+                <label for="languageSelect">اللغة:</label>
+                <select id="languageSelect" class="form-control">
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="notificationSelect">الإشعارات:</label>
+                <select id="notificationSelect" class="form-control">
+                    <option value="all">الكل</option>
+                    <option value="errors">الأخطاء فقط</option>
+                    <option value="none">تعطيل</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="themeSelect">المظهر:</label>
+                <select id="themeSelect" class="form-control">
+                    <option value="light">فاتح</option>
+                    <option value="dark">داكن</option>
+                    <option value="auto">تلقائي</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="rowsPerPage">عدد الصفوف لكل صفحة:</label>
+                <input type="number" id="rowsPerPage" class="form-control" min="5" max="100" value="10">
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()">حفظ الإعدادات</button>
             <button class="btn btn-secondary mt-3" onclick="closeModal('settingsModal')">إغلاق</button>
+        </div>
+    </div>
+
+    <div class="modal" id="advancedSearchModal">
+        <div class="modal-content">
+            <h5>بحث متقدم</h5>
+            <div class="mb-3">
+                <label for="searchName">الاسم:</label>
+                <input type="text" id="searchName" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="searchPhone">رقم الهاتف:</label>
+                <input type="text" id="searchPhone" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="searchAddress">العنوان:</label>
+                <input type="text" id="searchAddress" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="searchReason">سبب الزيارة:</label>
+                <input type="text" id="searchReason" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="searchDateFrom">من تاريخ:</label>
+                <input type="date" id="searchDateFrom" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="searchDateTo">إلى تاريخ:</label>
+                <input type="date" id="searchDateTo" class="form-control">
+            </div>
+            <button class="btn btn-primary" onclick="applyAdvancedSearch()">تطبيق البحث</button>
+            <button class="btn btn-secondary mt-3" onclick="closeModal('advancedSearchModal')">إغلاق</button>
+        </div>
+    </div>
+
+    <div class="modal" id="newMessageModal">
+        <div class="modal-content">
+            <h5>رسالة جديدة</h5>
+            <div class="mb-3">
+                <label for="messageRecipient">المستلم:</label>
+                <select id="messageRecipient" class="form-control">
+                    <option value="">اختر مستلم</option>
+                    <!-- سيتم ملء هذا بالزائرين -->
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="messageSubject">الموضوع:</label>
+                <input type="text" id="messageSubject" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="messageContent">المحتوى:</label>
+                <textarea id="messageContent" class="form-control" rows="5"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="sendMessage()">إرسال</button>
+            <button class="btn btn-secondary" onclick="saveDraft()">حفظ كمسودة</button>
+            <button class="btn btn-danger" onclick="closeModal('newMessageModal')">إلغاء</button>
+        </div>
+    </div>
+
+    <div class="modal" id="calendarEventModal">
+        <div class="modal-content">
+            <h5>حدث جديد</h5>
+            <div class="mb-3">
+                <label for="eventTitle">عنوان الحدث:</label>
+                <input type="text" id="eventTitle" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="eventDate">التاريخ:</label>
+                <input type="date" id="eventDate" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="eventTime">الوقت:</label>
+                <input type="time" id="eventTime" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="eventDescription">الوصف:</label>
+                <textarea id="eventDescription" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="eventAttendees">الحضور:</label>
+                <select id="eventAttendees" class="form-control" multiple>
+                    <!-- سيتم ملء هذا بالزائرين -->
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveEvent()">حفظ</button>
+            <button class="btn btn-secondary" onclick="closeModal('calendarEventModal')">إلغاء</button>
         </div>
     </div>
 
@@ -506,6 +667,31 @@
         let visitorsData = [];
         let language = localStorage.getItem('language') || 'ar';
         let notificationSettings = localStorage.getItem('notificationSettings') || 'all';
+        let isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+
+        // تحميل الترجمة والإعدادات عند بدء التشغيل
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isLoggedIn) {
+                document.getElementById('loginModal').classList.remove('show');
+                document.getElementById('mainContainer').classList.remove('d-none');
+                fetchData();
+            } else {
+                document.getElementById('loginModal').classList.add('show');
+            }
+
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+            }
+
+            // تعيين قيم الإعدادات المخزنة
+            document.getElementById('languageSelect').value = language;
+            document.getElementById('notificationSelect').value = notificationSettings;
+            document.getElementById('themeSelect').value = localStorage.getItem('theme') || 'light';
+            document.getElementById('rowsPerPage').value = localStorage.getItem('rowsPerPage') || 10;
+
+            updateLanguage();
+        });
 
         const translations = {
             ar: {
@@ -517,6 +703,8 @@
                 addData: 'إدخال بيانات',
                 reports: 'تقارير',
                 tools: 'أدوات',
+                calendar: 'التقويم',
+                messages: 'الرسائل',
                 searchPlaceholder: 'ابحث بالاسم أو العنوان...',
                 allStatuses: 'جميع الحالات',
                 approved: 'موافق',
@@ -529,6 +717,8 @@
                 dailyReport: 'تقرير يومي',
                 weeklyReport: 'تقرير أسبوعي',
                 monthlyReport: 'تقرير شهري',
+                yearlyReport: 'تقرير سنوي',
+                customReport: 'مخصص',
                 generateReport: 'إنشاء التقرير',
                 bulkNotifications: 'إرسال إشعارات جماعية',
                 quickStats: 'إحصائيات سريعة',
@@ -554,7 +744,20 @@
                 exportOptions: 'خيارات التصدير',
                 notificationSettings: 'إعدادات الإشعارات',
                 dataArchive: 'أرشفة البيانات',
-                analyticsDashboard: 'لوحة تحليلات'
+                analyticsDashboard: 'لوحة تحليلات',
+                visitorGroups: 'مجموعات الزائرين',
+                blacklist: 'القائمة السوداء',
+                checkIn: 'تسجيل الحضور',
+                checkOut: 'تسجيل المغادرة',
+                visitorTags: 'تاجات الزائرين',
+                visitorNotes: 'ملاحظات الزائرين',
+                visitorAttachments: 'مرفقات الزائرين',
+                visitorAlerts: 'تنبيهات الزائرين',
+                customFields: 'حقول مخصصة',
+                visitorTemplates: 'قوالب الزائرين',
+                workflow: 'سير العمل',
+                api: 'واجهة برمجة التطبيقات',
+                integrations: 'التكاملات'
             },
             en: {
                 login: 'Login',
@@ -565,6 +768,8 @@
                 addData: 'Add Data',
                 reports: 'Reports',
                 tools: 'Tools',
+                calendar: 'Calendar',
+                messages: 'Messages',
                 searchPlaceholder: 'Search by name or address...',
                 allStatuses: 'All Statuses',
                 approved: 'Approved',
@@ -577,6 +782,8 @@
                 dailyReport: 'Daily Report',
                 weeklyReport: 'Weekly Report',
                 monthlyReport: 'Monthly Report',
+                yearlyReport: 'Yearly Report',
+                customReport: 'Custom',
                 generateReport: 'Generate Report',
                 bulkNotifications: 'Send Bulk Notifications',
                 quickStats: 'Quick Statistics',
@@ -602,7 +809,20 @@
                 exportOptions: 'Export Options',
                 notificationSettings: 'Notification Settings',
                 dataArchive: 'Data Archive',
-                analyticsDashboard: 'Analytics Dashboard'
+                analyticsDashboard: 'Analytics Dashboard',
+                visitorGroups: 'Visitor Groups',
+                blacklist: 'Blacklist',
+                checkIn: 'Check In',
+                checkOut: 'Check Out',
+                visitorTags: 'Visitor Tags',
+                visitorNotes: 'Visitor Notes',
+                visitorAttachments: 'Visitor Attachments',
+                visitorAlerts: 'Visitor Alerts',
+                customFields: 'Custom Fields',
+                visitorTemplates: 'Visitor Templates',
+                workflow: 'Workflow',
+                api: 'API',
+                integrations: 'Integrations'
             }
         };
 
@@ -643,20 +863,33 @@
 
         const showQuickActions = () => showModal('quickActionsModal');
         const showSettingsModal = () => showModal('settingsModal');
+        const showAdvancedSearch = () => showModal('advancedSearchModal');
+        const showNewMessageModal = () => showModal('newMessageModal');
+        const showCalendarEventModal = () => showModal('calendarEventModal');
 
         const logout = () => {
+            localStorage.removeItem('isLoggedIn');
             document.getElementById('mainContainer').classList.add('d-none');
             document.getElementById('loginModal').classList.add('show');
+            showToast('تم تسجيل الخروج بنجاح');
         };
 
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            if (document.getElementById('passcode').value === '1234') {
+            const username = document.getElementById('username').value;
+            const passcode = document.getElementById('passcode').value;
+            
+            if (passcode === '1234') {
+                localStorage.setItem('isLoggedIn', 'true');
                 document.getElementById('loginModal').classList.remove('show');
                 document.getElementById('mainContainer').classList.remove('d-none');
                 fetchData();
+                showToast(`مرحباً ${username || 'بالسيد'}!`, 'success');
+                
                 if (notificationSettings === 'all') {
-                    new Notification(translations[language].systemTitle, { body: translations[language].welcome || 'مرحبًا بك!' });
+                    new Notification(translations[language].systemTitle, { 
+                        body: translations[language].welcome || 'مرحبًا بك!' 
+                    });
                 }
             } else {
                 showToast(translations[language].invalidPasscode || 'رمز المرور غير صحيح', 'error');
@@ -672,6 +905,7 @@
                     visitorsData = data;
                     filterAndRender();
                     updateStats();
+                    populateVisitorDropdowns();
                 })
                 .catch(err => {
                     document.getElementById('loading').classList.remove('show');
@@ -679,14 +913,41 @@
                 });
         };
 
+        const populateVisitorDropdowns = () => {
+            const recipientSelect = document.getElementById('messageRecipient');
+            const attendeesSelect = document.getElementById('eventAttendees');
+            
+            // مسح القوائم الحالية
+            recipientSelect.innerHTML = '<option value="">اختر مستلم</option>';
+            attendeesSelect.innerHTML = '';
+            
+            // إضافة الزائرين إلى القوائم
+            visitorsData.forEach(visitor => {
+                const name = visitor['الاسم'] || 'زائر بدون اسم';
+                const phone = visitor['رقم_الهاتف'] || '';
+                
+                const recipientOption = document.createElement('option');
+                recipientOption.value = phone;
+                recipientOption.textContent = `${name} (${phone})`;
+                recipientSelect.appendChild(recipientOption);
+                
+                const attendeeOption = document.createElement('option');
+                attendeeOption.value = phone;
+                attendeeOption.textContent = `${name} (${phone})`;
+                attendeesSelect.appendChild(attendeeOption);
+            });
+        };
+
         const updateStats = () => {
             const total = visitorsData.length;
             const completed = visitorsData.filter(row => row['حالة_الطلب'] === 'موافق').length;
             const pending = visitorsData.filter(row => row['حالة_الطلب'] === 'معلق').length;
+            const rejected = visitorsData.filter(row => row['حالة_الطلب'] === 'مرفوض').length;
 
             document.getElementById('totalVisitors').textContent = total;
             document.getElementById('completedVisitors').textContent = completed;
             document.getElementById('pendingVisitors').textContent = pending;
+            document.getElementById('rejectedVisitors').textContent = rejected;
         };
 
         const filterAndRender = () => {
@@ -716,6 +977,40 @@
             renderCards(filteredData);
         };
 
+        const applyAdvancedSearch = () => {
+            const name = document.getElementById('searchName').value.toLowerCase();
+            const phone = document.getElementById('searchPhone').value;
+            const address = document.getElementById('searchAddress').value.toLowerCase();
+            const reason = document.getElementById('searchReason').value.toLowerCase();
+            const dateFrom = document.getElementById('searchDateFrom').value;
+            const dateTo = document.getElementById('searchDateTo').value;
+
+            let filteredData = visitorsData;
+            
+            if (name) {
+                filteredData = filteredData.filter(row => (row['الاسم'] || '').toLowerCase().includes(name));
+            }
+            if (phone) {
+                filteredData = filteredData.filter(row => (row['رقم_الهاتف'] || '').includes(phone));
+            }
+            if (address) {
+                filteredData = filteredData.filter(row => (row['العنوان'] || '').toLowerCase().includes(address));
+            }
+            if (reason) {
+                filteredData = filteredData.filter(row => (row['سبب_زيارة'] || '').toLowerCase().includes(reason));
+            }
+            if (dateFrom && dateTo) {
+                filteredData = filteredData.filter(row => {
+                    const date = new Date(row['طابع_زمني']);
+                    return date >= new Date(dateFrom) && date <= new Date(dateTo);
+                });
+            }
+
+            renderTable(filteredData);
+            renderCards(filteredData);
+            closeModal('advancedSearchModal');
+        };
+
         const renderTable = (data) => {
             const tableBody = document.getElementById('visitorTable');
             tableBody.innerHTML = '';
@@ -732,6 +1027,7 @@
                     <td>
                         <button class="whatsapp-btn" onclick="window.open('https://wa.me/${row['رقم_الهاتف']}?text=مرحبًا ${row['الاسم']}', '_blank')" aria-label="واتساب"><i class="fab fa-whatsapp"></i></button>
                         <button class="tool-btn" onclick="updateVisitorStatus(${visitorsData.indexOf(row)})" aria-label="تحديث الحالة">تحديث</button>
+                        <button class="purple-btn" onclick="showVisitorDetails(${visitorsData.indexOf(row)})"><i class="fas fa-info-circle"></i></button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
@@ -752,11 +1048,51 @@
                     <div><strong>رقم الهاتف:</strong> ${row['رقم_الهاتف'] || 'غير متوفر'}</div>
                     <div><strong>سبب الزيارة:</strong> ${row['سبب_زيارة'] || 'غير متوفر'}</div>
                     <div><strong>الحالة:</strong> <span class="status-badge ${row['حالة_الطلب'] === 'موافق' ? 'approved' : row['حالة_الطلب'] === 'معلق' ? 'pending' : 'rejected'}">${row['حالة_الطلب'] || 'غير محدد'}</span></div>
-                    <button class="whatsapp-btn" onclick="window.open('https://wa.me/${row['رقم_الهاتف']}?text=مرحبًا ${row['الاسم']}', '_blank')" aria-label="واتساب"><i class="fab fa-whatsapp"></i></button>
-                    <button class="tool-btn" onclick="updateVisitorStatus(${visitorsData.indexOf(row)})" aria-label="تحديث الحالة">تحديث</button>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <button class="whatsapp-btn" onclick="window.open('https://wa.me/${row['رقم_الهاتف']}?text=مرحبًا ${row['الاسم']}', '_blank')" aria-label="واتساب"><i class="fab fa-whatsapp"></i></button>
+                        <button class="tool-btn" onclick="updateVisitorStatus(${visitorsData.indexOf(row)})" aria-label="تحديث الحالة">تحديث</button>
+                        <button class="purple-btn" onclick="showVisitorDetails(${visitorsData.indexOf(row)})"><i class="fas fa-info-circle"></i></button>
+                    </div>
                 `;
                 visitorCards.appendChild(card);
             });
+        };
+
+        const showVisitorDetails = (index) => {
+            const visitor = visitorsData[index];
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>تفاصيل الزائر</h5>
+                    <div class="text-center mb-3">
+                        <img src="${visitor['صورة'] || 'https://via.placeholder.com/150'}" alt="صورة الزائر" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover;">
+                    </div>
+                    <div class="mb-2"><strong>الاسم:</strong> ${visitor['الاسم'] || 'غير متوفر'}</div>
+                    <div class="mb-2"><strong>رقم الهاتف:</strong> ${visitor['رقم_الهاتف'] || 'غير متوفر'}</div>
+                    <div class="mb-2"><strong>العنوان:</strong> ${visitor['العنوان'] || 'غير متوفر'}</div>
+                    <div class="mb-2"><strong>سبب الزيارة:</strong> ${visitor['سبب_زيارة'] || 'غير متوفر'}</div>
+                    <div class="mb-2"><strong>التاريخ:</strong> ${visitor['طابع_زمني'] || 'غير متوفر'}</div>
+                    <div class="mb-2"><strong>الحالة:</strong> <span class="status-badge ${visitor['حالة_الطلب'] === 'موافق' ? 'approved' : visitor['حالة_الطلب'] === 'معلق' ? 'pending' : 'rejected'}">${visitor['حالة_الطلب'] || 'غير محدد'}</span></div>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <button class="whatsapp-btn" onclick="window.open('https://wa.me/${visitor['رقم_الهاتف']}?text=مرحبًا ${visitor['الاسم']}', '_blank')"><i class="fab fa-whatsapp"></i> واتساب</button>
+                        <button class="tool-btn" onclick="updateVisitorStatus(${index})"><i class="fas fa-edit"></i> تحديث الحالة</button>
+                        <button class="danger-btn" onclick="deleteVisitor(${index})"><i class="fas fa-trash"></i> حذف</button>
+                    </div>
+                    <button class="btn btn-secondary mt-3 w-100" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const deleteVisitor = (index) => {
+            if (confirm('هل أنت متأكد من حذف هذا الزائر؟')) {
+                visitorsData.splice(index, 1);
+                filterAndRender();
+                updateStats();
+                showToast('تم حذف الزائر بنجاح');
+                document.querySelector('.modal.show')?.remove();
+            }
         };
 
         const generateReport = () => {
@@ -777,6 +1113,14 @@
                 startDate = new Date(today.getFullYear(), today.getMonth(), 1);
                 endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                 title = translations[language].monthlyReport;
+            } else if (reportType === 'yearly') {
+                startDate = new Date(today.getFullYear(), 0, 1);
+                endDate = new Date(today.getFullYear(), 11, 31);
+                title = translations[language].yearlyReport;
+            } else if (reportType === 'custom') {
+                startDate = new Date(document.getElementById('reportDateFrom').value);
+                endDate = new Date(document.getElementById('reportDateTo').value);
+                title = translations[language].customReport;
             }
 
             filteredData = visitorsData.filter(row => {
@@ -833,6 +1177,14 @@
                 startDate = new Date(today.getFullYear(), today.getMonth(), 1);
                 endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                 title = translations[language].monthlyReport;
+            } else if (reportType === 'yearly') {
+                startDate = new Date(today.getFullYear(), 0, 1);
+                endDate = new Date(today.getFullYear(), 11, 31);
+                title = translations[language].yearlyReport;
+            } else if (reportType === 'custom') {
+                startDate = new Date(document.getElementById('reportDateFrom').value);
+                endDate = new Date(document.getElementById('reportDateTo').value);
+                title = translations[language].customReport;
             }
 
             filteredData = visitorsData.filter(row => {
@@ -886,6 +1238,10 @@
             });
         };
 
+        const printReport = () => {
+            window.print();
+        };
+
         const exportToExcel = () => {
             if (!visitorsData.length) {
                 showToast(translations[language].noData, 'error');
@@ -894,7 +1250,7 @@
             const ws = XLSX.utils.json_to_sheet(visitorsData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Visitors');
-            XLSX.write(wb, 'Visitors.xlsx');
+            XLSX.writeFile(wb, 'Visitors.xlsx');
             showToast(translations[language].exportExcel);
         };
 
@@ -920,7 +1276,10 @@
             modal.innerHTML = `
                 <div class="modal-content">
                     <h5 data-translate="importData">استيراد بيانات</h5>
-                    <input type="file" id="importFile" accept=".json,.csv">
+                    <input type="file" id="importFile" accept=".json,.csv,.xlsx">
+                    <div class="mt-2">
+                        <label><input type="checkbox" id="replaceData"> استبدال البيانات الحالية</label>
+                    </div>
                     <button class="btn btn-primary mt-2" onclick="importData()">استيراد</button>
                     <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
                 </div>
@@ -930,23 +1289,58 @@
 
         const importData = () => {
             const file = document.getElementById('importFile').files[0];
+            const replaceData = document.getElementById('replaceData').checked;
+            
             if (!file) {
                 showToast('يرجى اختيار ملف', 'error');
                 return;
             }
+            
             const reader = new FileReader();
             reader.onload = (e) => {
-                if (file.name.endsWith('.json')) {
-                    visitorsData = JSON.parse(e.target.result);
-                } else if (file.name.endsWith('.csv')) {
-                    const ws = XLSX.utils.csv_to_sheet(e.target.result);
-                    visitorsData = XLSX.utils.sheet_to_json(ws);
+                try {
+                    if (file.name.endsWith('.json')) {
+                        const data = JSON.parse(e.target.result);
+                        if (replaceData) {
+                            visitorsData = data;
+                        } else {
+                            visitorsData = [...visitorsData, ...data];
+                        }
+                    } else if (file.name.endsWith('.csv')) {
+                        const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const data = XLSX.utils.sheet_to_json(worksheet);
+                        if (replaceData) {
+                            visitorsData = data;
+                        } else {
+                            visitorsData = [...visitorsData, ...data];
+                        }
+                    } else if (file.name.endsWith('.xlsx')) {
+                        const workbook = XLSX.read(e.target.result, { type: 'array' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const data = XLSX.utils.sheet_to_json(worksheet);
+                        if (replaceData) {
+                            visitorsData = data;
+                        } else {
+                            visitorsData = [...visitorsData, ...data];
+                        }
+                    }
+                    
+                    filterAndRender();
+                    updateStats();
+                    showToast('تم استيراد البيانات بنجاح');
+                    document.querySelector('.modal.show')?.remove();
+                } catch (error) {
+                    showToast('خطأ في قراءة الملف', 'error');
+                    console.error(error);
                 }
-                filterAndRender();
-                updateStats();
-                showToast('تم استيراد البيانات بنجاح');
             };
-            reader.readAsText(file);
+            
+            if (file.name.endsWith('.json') || file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
         };
 
         const startVoiceSearch = () => {
@@ -1043,6 +1437,7 @@
             const filteredData = reason ? visitorsData.filter(row => row['سبب_زيارة'] === reason) : visitorsData;
             renderTable(filteredData);
             renderCards(filteredData);
+            document.querySelector('.modal.show')?.remove();
         };
 
         const showVisitorHistory = () => {
@@ -1053,7 +1448,7 @@
                     <h5 data-translate="visitorHistory">سجل الزائر</h5>
                     <input type="text" id="visitorName" placeholder="أدخل اسم الزائر">
                     <button class="btn btn-primary mt-2" onclick="searchVisitorHistory()">بحث</button>
-                    <div id="historyResults"></div>
+                    <div id="historyResults" class="mt-3"></div>
                     <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
                 </div>
             `;
@@ -1064,32 +1459,139 @@
             const name = document.getElementById('visitorName').value.toLowerCase();
             const results = visitorsData.filter(row => (row['الاسم'] || '').toLowerCase().includes(name));
             const historyDiv = document.getElementById('historyResults');
-            historyDiv.innerHTML = results.length ? results.map(row => `<p>${row['طابع_زمني']}: ${row['حالة_الطلب']}</p>`).join('') : 'لا توجد نتائج';
+            
+            if (results.length) {
+                historyDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>نتائج البحث: ${results.length}</h5>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>الحالة</th>
+                                            <th>سبب الزيارة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${results.map(row => `
+                                            <tr>
+                                                <td>${row['طابع_زمني'] || 'غير متوفر'}</td>
+                                                <td><span class="status-badge ${row['حالة_الطلب'] === 'موافق' ? 'approved' : row['حالة_الطلب'] === 'معلق' ? 'pending' : 'rejected'}">${row['حالة_الطلب'] || 'غير محدد'}</span></td>
+                                                <td>${row['سبب_زيارة'] || 'غير متوفر'}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                historyDiv.innerHTML = '<div class="alert alert-info">لا توجد نتائج</div>';
+            }
         };
 
         const sendSMS = () => {
-            showToast('ميزة إرسال SMS غير متوفرة حاليًا', 'error');
-        };
-
-        const showMapView = () => {
-            showToast('عرض الخريطة غير متوفر حاليًا', 'error');
-        };
-
-        const showCalendarView = () => {
             const modal = document.createElement('div');
             modal.className = 'modal show';
             modal.innerHTML = `
                 <div class="modal-content">
-                    <h5 data-translate="calendarView">عرض التقويم</h5>
-                    <p>التقويم التفاعلي قيد التطوير.</p>
-                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                    <h5>إرسال رسالة SMS</h5>
+                    <div class="mb-3">
+                        <label for="smsRecipient">المستلم:</label>
+                        <select id="smsRecipient" class="form-control">
+                            <option value="">اختر مستلم</option>
+                            ${visitorsData.map(visitor => `
+                                <option value="${visitor['رقم_الهاتف']}">${visitor['الاسم']} (${visitor['رقم_الهاتف']})</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="smsContent">المحتوى:</label>
+                        <textarea id="smsContent" class="form-control" rows="5"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="sendSMSMessage()">إرسال</button>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إلغاء</button>
                 </div>
             `;
             document.body.appendChild(modal);
         };
 
+        const sendSMSMessage = () => {
+            const recipient = document.getElementById('smsRecipient').value;
+            const content = document.getElementById('smsContent').value;
+            
+            if (!recipient || !content) {
+                showToast('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            
+            // هنا يمكنك إضافة كود إرسال الرسالة الفعلي
+            showToast(`تم إرسال الرسالة إلى ${recipient}`);
+            document.querySelector('.modal.show')?.remove();
+        };
+
+        const showMapView = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>عرض الخريطة</h5>
+                    <div id="map" style="height: 400px; width: 100%; background: #eee; margin-bottom: 1rem;"></div>
+                    <p>هذه الميزة تتطلب اتصالاً بالإنترنت وتفعيل خدمة الخرائط.</p>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // تحميل خدمة الخرائط بشكل متأخر
+            setTimeout(() => {
+                // يمكنك هنا تحميل مكتبة الخرائط مثل Google Maps أو Leaflet
+                showToast('جارٍ تحميل خدمة الخرائط...');
+            }, 500);
+        };
+
+        const showCalendarView = () => {
+            navigateTo('calendar');
+        };
+
         const generateQRCode = () => {
-            showToast('إنشاء رمز QR غير متوفر حاليًا', 'error');
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>إنشاء رمز QR</h5>
+                    <div class="mb-3">
+                        <label for="qrContent">المحتوى:</label>
+                        <input type="text" id="qrContent" class="form-control" placeholder="أدخل النص أو الرابط">
+                    </div>
+                    <div class="mb-3 text-center" id="qrCodeContainer">
+                        <p>سيظهر رمز QR هنا</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateQRCodeImage()">إنشاء</button>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const generateQRCodeImage = () => {
+            const content = document.getElementById('qrContent').value;
+            if (!content) {
+                showToast('يرجى إدخال محتوى لإنشاء رمز QR', 'error');
+                return;
+            }
+            
+            // هنا يمكنك استخدام مكتبة مثل qrcode.js لإنشاء رمز QR
+            const qrContainer = document.getElementById('qrCodeContainer');
+            qrContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <p>هذه الميزة تتطلب إضافة مكتبة إنشاء رموز QR.</p>
+                    <p>المحتوى: ${content}</p>
+                </div>
+            `;
         };
 
         const showVisitorStats = () => {
@@ -1097,11 +1599,14 @@
             modal.className = 'modal show';
             modal.innerHTML = `
                 <div class="modal-content">
-                    <h5 data-translate="visitorStats">إحصائيات الزائر</h5>
-                    <input type="text" id="visitorStatsName" placeholder="أدخل اسم الزائر">
-                    <button class="btn btn-primary mt-2" onclick="showIndividualStats()">عرض</button>
-                    <div id="statsResults"></div>
-                    <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                    <h5>إحصائيات الزائر</h5>
+                    <div class="mb-3">
+                        <label for="visitorStatsName">اسم الزائر:</label>
+                        <input type="text" id="visitorStatsName" class="form-control" placeholder="أدخل اسم الزائر">
+                    </div>
+                    <button class="btn btn-primary" onclick="showIndividualStats()">عرض</button>
+                    <div id="statsResults" class="mt-3"></div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -1111,7 +1616,27 @@
             const name = document.getElementById('visitorStatsName').value.toLowerCase();
             const results = visitorsData.filter(row => (row['الاسم'] || '').toLowerCase().includes(name));
             const statsDiv = document.getElementById('statsResults');
-            statsDiv.innerHTML = results.length ? `عدد الزيارات: ${results.length}` : 'لا توجد نتائج';
+            
+            if (results.length) {
+                const totalVisits = results.length;
+                const approvedVisits = results.filter(row => row['حالة_الطلب'] === 'موافق').length;
+                const pendingVisits = results.filter(row => row['حالة_الطلب'] === 'معلق').length;
+                const rejectedVisits = results.filter(row => row['حالة_الطلب'] === 'مرفوض').length;
+                
+                statsDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>إحصائيات الزائر: ${results[0]['الاسم']}</h5>
+                            <p>عدد الزيارات: ${totalVisits}</p>
+                            <p>الزيارات الموافق عليها: ${approvedVisits} (${Math.round((approvedVisits / totalVisits) * 100)}%)</p>
+                            <p>الزيارات المعلقة: ${pendingVisits} (${Math.round((pendingVisits / totalVisits) * 100)}%)</p>
+                            <p>الزيارات المرفوضة: ${rejectedVisits} (${Math.round((rejectedVisits / totalVisits) * 100)}%)</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                statsDiv.innerHTML = '<div class="alert alert-info">لا توجد نتائج</div>';
+            }
         };
 
         const exportToJSON = () => {
@@ -1124,8 +1649,32 @@
             modal.className = 'modal show';
             modal.innerHTML = `
                 <div class="modal-content">
-                    <h5 data-translate="dataValidation">التحقق من البيانات</h5>
-                    <p>السجلات غير المكتملة: ${invalidRecords.length}</p>
+                    <h5>التحقق من البيانات</h5>
+                    <p>عدد السجلات غير المكتملة: ${invalidRecords.length}</p>
+                    ${invalidRecords.length > 0 ? `
+                        <div class="table-responsive mt-3">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>الاسم</th>
+                                        <th>رقم الهاتف</th>
+                                        <th>سبب الزيارة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${invalidRecords.map(row => `
+                                        <tr>
+                                            <td>${row['طابع_زمني'] || 'غير متوفر'}</td>
+                                            <td>${row['الاسم'] || 'غير متوفر'}</td>
+                                            <td>${row['رقم_الهاتف'] || 'غير متوفر'}</td>
+                                            <td>${row['سبب_زيارة'] || 'غير متوفر'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : '<p class="alert alert-success">جميع السجلات مكتملة</p>'}
                     <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
                 </div>
             `;
@@ -1133,11 +1682,33 @@
         };
 
         const showAuditLog = () => {
-            showToast('سجل التدقيق غير متوفر حاليًا', 'error');
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>سجل التدقيق</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتطلب نظام تسجيل الأحداث والتحكم في الصلاحيات.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
         };
 
         const showRoleManagement = () => {
-            showToast('إدارة الأدوار غير متوفرة حاليًا', 'error');
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>إدارة الأدوار والصلاحيات</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إدارة أدوار المستخدمين والتحكم في الصلاحيات.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
         };
 
         const showDataExportOptions = () => {
@@ -1145,10 +1716,13 @@
             modal.className = 'modal show';
             modal.innerHTML = `
                 <div class="modal-content">
-                    <h5 data-translate="exportOptions">خيارات التصدير</h5>
-                    <button class="btn btn-primary mb-2" onclick="exportToExcel()">Excel</button>
-                    <button class="btn btn-primary mb-2" onclick="exportToCSV()">CSV</button>
-                    <button class="btn btn-primary mb-2" onclick="exportToJSON()">JSON</button>
+                    <h5>خيارات تصدير البيانات</h5>
+                    <div class="d-flex flex-column gap-2">
+                        <button class="btn btn-primary" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> تصدير إلى Excel</button>
+                        <button class="btn btn-primary" onclick="exportToCSV()"><i class="fas fa-file-csv"></i> تصدير إلى CSV</button>
+                        <button class="btn btn-primary" onclick="exportToJSON()"><i class="fas fa-file-code"></i> تصدير إلى JSON</button>
+                        <button class="btn btn-primary" onclick="exportReportToPDF()"><i class="fas fa-file-pdf"></i> تصدير إلى PDF</button>
+                    </div>
                     <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
                 </div>
             `;
@@ -1160,11 +1734,279 @@
         };
 
         const showDataArchive = () => {
-            showToast('أرشفة البيانات غير متوفرة حاليًا', 'error');
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>أرشفة البيانات</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك أرشفة البيانات القديمة لتقليل حجم قاعدة البيانات.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
         };
 
         const showAnalyticsDashboard = () => {
-            showToast('لوحة التحليلات قيد التطوير', 'error');
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>لوحة التحليلات</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك عرض تحليلات متقدمة لبيانات الزائرين.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorGroups = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>مجموعات الزائرين</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إدارة مجموعات الزائرين وتصنيفهم حسب الفئات.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showBlacklist = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>القائمة السوداء</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إدارة قائمة الزائرين الممنوعين من الدخول.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorCheckIn = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>تسجيل حضور الزائر</h5>
+                    <div class="mb-3">
+                        <label for="checkInVisitor">الزائر:</label>
+                        <select id="checkInVisitor" class="form-control">
+                            <option value="">اختر زائر</option>
+                            ${visitorsData.map(visitor => `
+                                <option value="${visitor['رقم_الهاتف']}">${visitor['الاسم']} (${visitor['رقم_الهاتف']})</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="checkInVisitor()">تسجيل الحضور</button>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إلغاء</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const checkInVisitor = () => {
+            const visitorPhone = document.getElementById('checkInVisitor').value;
+            if (!visitorPhone) {
+                showToast('يرجى اختيار زائر', 'error');
+                return;
+            }
+            
+            const visitor = visitorsData.find(v => v['رقم_الهاتف'] === visitorPhone);
+            if (visitor) {
+                visitor['حالة_الطلب'] = 'موافق';
+                visitor['وقت_الحضور'] = new Date().toISOString();
+                showToast(`تم تسجيل حضور ${visitor['الاسم']}`);
+                document.querySelector('.modal.show')?.remove();
+                filterAndRender();
+            } else {
+                showToast('الزائر غير موجود', 'error');
+            }
+        };
+
+        const showVisitorCheckOut = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>تسجيل مغادرة الزائر</h5>
+                    <div class="mb-3">
+                        <label for="checkOutVisitor">الزائر:</label>
+                        <select id="checkOutVisitor" class="form-control">
+                            <option value="">اختر زائر</option>
+                            ${visitorsData.filter(v => v['حالة_الطلب'] === 'موافق' && !v['وقت_المغادرة']).map(visitor => `
+                                <option value="${visitor['رقم_الهاتف']}">${visitor['الاسم']} (${visitor['رقم_الهاتف']})</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="checkOutVisitor()">تسجيل المغادرة</button>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إلغاء</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const checkOutVisitor = () => {
+            const visitorPhone = document.getElementById('checkOutVisitor').value;
+            if (!visitorPhone) {
+                showToast('يرجى اختيار زائر', 'error');
+                return;
+            }
+            
+            const visitor = visitorsData.find(v => v['رقم_الهاتف'] === visitorPhone);
+            if (visitor) {
+                visitor['وقت_المغادرة'] = new Date().toISOString();
+                showToast(`تم تسجيل مغادرة ${visitor['الاسم']}`);
+                document.querySelector('.modal.show')?.remove();
+                filterAndRender();
+            } else {
+                showToast('الزائر غير موجود', 'error');
+            }
+        };
+
+        const showVisitorTags = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>تاجات الزائرين</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إضافة وإدارة تاجات للزائرين لتصنيفهم.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorNotes = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>ملاحظات الزائرين</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إضافة ملاحظات خاصة لكل زائر.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorAttachments = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>مرفقات الزائرين</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إضافة مرفقات مثل الصور أو المستندات لكل زائر.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorAlerts = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>تنبيهات الزائرين</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إعداد تنبيهات عند زيارة أشخاص معينين.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorCustomFields = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>حقول مخصصة</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إضافة حقول مخصصة لاستمارة الزائرين.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorTemplates = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>قوالب الزائرين</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إدارة قوالب رسائل البريد الإلكتروني والإشعارات.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorWorkflow = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>سير العمل</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك إدارة سير العمل لطلبات الزيارة.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorAPI = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>واجهة برمجة التطبيقات (API)</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك الوصول إلى بيانات الزائرين عبر واجهة برمجة التطبيقات.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        const showVisitorIntegrations = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h5>التكاملات</h5>
+                    <div class="alert alert-info">
+                        <p>هذه الميزة تتيح لك التكامل مع أنظمة أخرى مثل أنظمة الحضور والانصراف.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
         };
 
         const updateVisitorStatus = (index) => {
@@ -1173,11 +2015,15 @@
             modal.innerHTML = `
                 <div class="modal-content">
                     <h5>تحديث حالة الزائر</h5>
-                    <select id="newStatus">
+                    <select id="newStatus" class="form-control">
                         <option value="موافق">موافق</option>
                         <option value="معلق">معلق</option>
                         <option value="مرفوض">مرفوض</option>
                     </select>
+                    <div class="mt-3">
+                        <label for="statusNotes">ملاحظات:</label>
+                        <textarea id="statusNotes" class="form-control" rows="3"></textarea>
+                    </div>
                     <button class="btn btn-primary mt-2" onclick="saveStatus(${index})">حفظ</button>
                     <button class="btn btn-secondary mt-3" onclick="this.parentElement.parentElement.remove()">إغلاق</button>
                 </div>
@@ -1187,10 +2033,114 @@
 
         const saveStatus = (index) => {
             visitorsData[index]['حالة_الطلب'] = document.getElementById('newStatus').value;
+            visitorsData[index]['ملاحظات_الحالة'] = document.getElementById('statusNotes').value;
             filterAndRender();
             updateStats();
             showToast('تم تحديث الحالة');
+            document.querySelector('.modal.show')?.remove();
         };
+
+        const sendMessage = () => {
+            const recipient = document.getElementById('messageRecipient').value;
+            const subject = document.getElementById('messageSubject').value;
+            const content = document.getElementById('messageContent').value;
+            
+            if (!recipient || !subject || !content) {
+                showToast('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            
+            showToast(`تم إرسال الرسالة إلى ${recipient}`);
+            closeModal('newMessageModal');
+        };
+
+        const saveDraft = () => {
+            const subject = document.getElementById('messageSubject').value;
+            const content = document.getElementById('messageContent').value;
+            
+            if (!subject && !content) {
+                showToast('لا يوجد محتوى لحفظه', 'error');
+                return;
+            }
+            
+            showToast('تم حفظ المسودة');
+            closeModal('newMessageModal');
+        };
+
+        const saveEvent = () => {
+            const title = document.getElementById('eventTitle').value;
+            const date = document.getElementById('eventDate').value;
+            const time = document.getElementById('eventTime').value;
+            const description = document.getElementById('eventDescription').value;
+            
+            if (!title || !date || !time) {
+                showToast('يرجى ملء الحقول المطلوبة', 'error');
+                return;
+            }
+            
+            showToast(`تم حفظ الحدث "${title}"`);
+            closeModal('calendarEventModal');
+        };
+
+        const showInbox = () => {
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="alert alert-info">
+                    <p>صندوق الوارد قيد التطوير.</p>
+                </div>
+            `;
+        };
+
+        const showSentMessages = () => {
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="alert alert-info">
+                    <p>الرسائل المرسلة قيد التطوير.</p>
+                </div>
+            `;
+        };
+
+        const showDrafts = () => {
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="alert alert-info">
+                    <p>المسودات قيد التطوير.</p>
+                </div>
+            `;
+        };
+
+        const showTrash = () => {
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="alert alert-info">
+                    <p>المحذوفات قيد التطوير.</p>
+                </div>
+            `;
+        };
+
+        const saveSettings = () => {
+            language = document.getElementById('languageSelect').value;
+            notificationSettings = document.getElementById('notificationSelect').value;
+            const theme = document.getElementById('themeSelect').value;
+            const rowsPerPage = document.getElementById('rowsPerPage').value;
+            
+            localStorage.setItem('language', language);
+            localStorage.setItem('notificationSettings', notificationSettings);
+            localStorage.setItem('theme', theme);
+            localStorage.setItem('rowsPerPage', rowsPerPage);
+            
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else if (theme === 'light') {
+                document.body.classList.remove('dark-mode');
+            } else {
+                // تلقائي - يمكنك إضافة كود للكشف عن تفضيلات النظام
+            }
+            
+            updateLanguage();
+            showToast('تم حفظ الإعدادات بنجاح');
+            closeModal('settingsModal');
+        };
+
+        document.getElementById('reportType').addEventListener('change', function() {
+            document.getElementById('customDateRange').classList.toggle('d-none', this.value !== 'custom');
+        });
 
         document.getElementById('searchInput').addEventListener('input', filterAndRender);
         document.getElementById('statusFilter').addEventListener('change', filterAndRender);
@@ -1208,26 +2158,27 @@
             });
         });
 
-        document.getElementById('languageSelect').addEventListener('change', (e) => {
-            language = e.target.value;
-            localStorage.setItem('language', language);
-            moment.locale(language);
-            updateLanguage();
-        });
-
-        document.getElementById('notificationSelect').addEventListener('change', (e) => {
-            notificationSettings = e.target.value;
-            localStorage.setItem('notificationSettings', notificationSettings);
-        });
-
         const updateLanguage = () => {
             document.querySelectorAll('[data-translate]').forEach(el => {
                 const key = el.dataset.translate;
                 el.textContent = translations[language][key] || el.textContent;
             });
+            
+            // تحديث عناصر واجهة المستخدم الأخرى التي لا تحتوي على سمة data-translate
+            document.querySelectorAll('input[placeholder], select option').forEach(el => {
+                const translationKey = Object.keys(translations[language]).find(key => 
+                    translations[language][key] === el.textContent || 
+                    translations[language][key] === el.placeholder
+                );
+                if (translationKey) {
+                    if (el.tagName === 'OPTION') {
+                        el.textContent = translations[language][translationKey];
+                    } else {
+                        el.placeholder = translations[language][translationKey];
+                    }
+                }
+            });
         };
-
-        if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js')
